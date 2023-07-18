@@ -9,8 +9,8 @@ gateway:
     port: 30000
     redirectTopic: tcp_topic # 直接转发目的地
     parameter: {
-      protocol: abc # 对应的解析协议，第一个handler应该是分包handler
-      login_timeout: 60 # 登陆超时，单位:秒
+      protocol: abc, # 对应的解析协议，第一个handler应该是分包handler
+      login_timeout: 60, # 登陆超时，单位:秒
       heart_timeout: 600 # 心跳超时，单位:秒
     }
 #  udp:

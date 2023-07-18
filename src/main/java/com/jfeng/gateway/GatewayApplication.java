@@ -79,8 +79,14 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
         }
     }
 
+    private static ApplicationContext application;
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        application = applicationContext;
+    }
 
+    public static <T> T getObject(Class<T> clazz) {
+        final T bean = application.getBean(clazz);
+        return bean;
     }
 }

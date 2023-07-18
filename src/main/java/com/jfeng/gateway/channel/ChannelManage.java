@@ -1,19 +1,20 @@
 package com.jfeng.gateway.channel;
 
+import com.jfeng.gateway.GatewayApplication;
+import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
 import com.jfeng.gateway.util.DateTimeUtils2;
+import com.jfeng.gateway.util.RedisUtils;
 import com.jfeng.gateway.util.StringUtils;
-import io.netty.buffer.ByteBuf;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -25,7 +26,6 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public class ChannelManage<T extends ClientChannel> implements ChannelEventListener {
     private static Map<String, ChannelManage> instances = new ConcurrentHashMap<>();
-
 
     public static ChannelManage getInstance(String channelType) {
         String key = channelType.toUpperCase();
@@ -41,6 +41,7 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
     }
 
     private ChannelManage() {
+        init();
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("超时检测")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
@@ -82,34 +83,72 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
                 }
             }
         });
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("连接明细")).submit(() -> {
+            while (isRunning) {
+                try {
+                    //TODO 维护历史连接明细
+                    ConnectDetail connectDetail = connectDetails.take();
+
+                } catch (Exception e) {
+                    log.warn("在线列表存储异常：", e);
+                }
+            }
+        });
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("设备在线")).submit(() -> {
             while (isRunning) {
                 try {
                     StateChangeEvent event = stateChangeEvent.take();
                     ClientChannel clientChannel = event.session;
 
-//                    if (event.state == 1) {
-//                        //1.删除链接信息
-//                        redisUtils.delete(Constant.SYSTEM_PREFIX + "CONNECT:" + clientChannel.remoteAddress);
-//                        //2.新增在线信息
-//                        Map<String, String> hashValue = new HashMap<>();
-//                        hashValue.put("REMOTE_ADDRESS", clientChannel.getAddressInfo(clientChannel.remoteAddress));
-//                        hashValue.put("LOCAL_ADDRESS", clientChannel.getAddressInfo(clientChannel.localAddress));
-//                        hashValue.put("IDENTIFIER_NO", clientChannel.keyNo);
-//                        hashValue.put("CREATE_TIME", String.valueOf(clientChannel.createTime));
-//                        hashValue.put("RECEIVE_NUM", String.valueOf(clientChannel.receiveNum));
-//                        hashValue.put("RECEIVE_BYTES", String.valueOf(clientChannel.receiveBytes));
-//                        hashValue.put("LAST_RECEIVE_TIME", String.valueOf(clientChannel.lastReceiveTime));
-//                        hashValue.put("SEND_NUM", String.valueOf(clientChannel.sendNum));
-//                        hashValue.put("SEND_BYTES", String.valueOf(clientChannel.sendBytes));
-//                        hashValue.put("LAST_SEND_TIME", String.valueOf(clientChannel.lastSendTime));
-//                        redisUtils.putAll(Constant.SYSTEM_PREFIX + "ONLINE:" + clientChannel.keyNo, hashValue);
-//                    } else {
-//                        redisUtils.delete(Constant.SYSTEM_PREFIX + "CONNECT:" + clientChannel.remoteAddress);
-//                        redisUtils.delete(Constant.SYSTEM_PREFIX + "ONLINE:" + clientChannel.keyNo);
-//                    }
+                    String onlineKey = Constant.ONLINE_LOCATION + clientChannel.getPacketId();
+                    String onlineLocationKey = Constant.ONLINE_LOCATION + clientChannel.getPacketId();
+                    Map<String, String> oldOnlineInfo;
+
+                    if (event.state == 1) {
+                        //1.维护上一次因为异常未保存的历史连接信息
+                        if (redisUtils.hasKey(onlineKey) && ((oldOnlineInfo = redisUtils.entries(onlineKey)) != null)) {
+                            long totalMill = Long.parseLong(oldOnlineInfo.get(Constant.ONLINE_INFO_LAST_REFRESH_TIME)) - Long.parseLong(oldOnlineInfo.get(Constant.ONLINE_INFO_CREATE_TIME));
+                            oldOnlineInfo.put(Constant.ONLINE_INFO_TOTAL_MILL, String.valueOf(totalMill));
+                            connectDetails.offer(new ConnectDetail(oldOnlineInfo));
+                        }
+                        //2.在线列表
+                        Map<String, String> hashValue = new HashMap<>();
+                        hashValue.put(Constant.ONLINE_INFO_REMOTE_ADDRESS, clientChannel.getRemoteAddress());
+
+                        hashValue.put(Constant.ONLINE_INFO_PACKET_ID, clientChannel.getPacketId());
+                        hashValue.put(Constant.ONLINE_INFO_ID, clientChannel.getId());
+                        hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, String.valueOf(clientChannel.getCreateTime()));
+
+                        hashValue.put(Constant.ONLINE_INFO_RECEIVE_PACKETS, String.valueOf(clientChannel.getReceivedPackets()));
+                        hashValue.put(Constant.ONLINE_INFO_RECEIVE_BYTES, String.valueOf(clientChannel.getReceivedBytes()));
+                        hashValue.put(Constant.ONLINE_INFO_LAST_RECEIVE_TIME, String.valueOf(clientChannel.getLastReadTime()));
+
+                        hashValue.put(Constant.ONLINE_INFO_SEND_PACKETS, String.valueOf(clientChannel.getSendPackets()));
+                        hashValue.put(Constant.ONLINE_INFO_SEND_BYTES, String.valueOf(clientChannel.getSendBytes()));
+                        hashValue.put(Constant.ONLINE_INFO_LAST_SEND_TIME, String.valueOf(clientChannel.getLastWriteTime()));
+                        hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, String.valueOf(ZonedDateTime.now().toInstant().toEpochMilli()));
+
+                        redisUtils.putAll(onlineKey, hashValue);
+                        redisUtils.expire(onlineKey, 5, TimeUnit.MINUTES);
+                        //3. 维护设备和所属机器的关系
+                        Map<String, String> mapping = new HashMap<>();
+                        mapping.put(Constant.ONLINE_MACHINE, clientChannel.getLocalAddress());
+                        mapping.put(Constant.ONLINE_LAST_REFRESH, DateTimeUtils2.outNow());
+                        redisUtils.putAll(onlineLocationKey, mapping);
+                    } else {
+                        //1.保存连接信息
+                        if (redisUtils.hasKey(onlineKey) && ((oldOnlineInfo = redisUtils.entries(onlineKey)) != null)) {
+                            long totalMill = System.currentTimeMillis() - Long.parseLong(oldOnlineInfo.get(Constant.ONLINE_INFO_CREATE_TIME));
+                            oldOnlineInfo.put(Constant.ONLINE_INFO_TOTAL_MILL, String.valueOf(totalMill));
+
+                            connectDetails.offer(new ConnectDetail(oldOnlineInfo));
+                        }
+                        //2.删除在线列表及机器映射关系
+                        redisUtils.delete(onlineKey);
+                        redisUtils.delete(onlineLocationKey);
+                    }
                 } catch (Exception e) {
-                    log.warn("存储异常：", e);
+                    log.warn("在线列表存储异常：", e);
                 }
             }
         });
@@ -136,14 +175,21 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
                     log.warn("总流量统计", e);
                 } finally {
                     try {
-                        Thread.sleep(serverStaticsInterval);
+                        Thread.sleep(checkPeriod);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
             }
         });
+    }
 
+    private RedisUtils redisUtils;
+    private KafkaTemplate kafkaTemplate;
+
+    private void init() {
+        redisUtils = GatewayApplication.getObject(RedisUtils.class);
+        kafkaTemplate = GatewayApplication.getObject(KafkaTemplate.class);
     }
 
     private boolean timeOut(long time, int threshold) {
@@ -159,14 +205,15 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
     private int loginTimeout = 1000 * 60;//登陆超时
     private int heartTimeout = 1000 * 60 * 3;//心跳超时
     private int timeoutCheckInterval = 1000 * 3;//检测周期
-    private int serverStaticsInterval = 1000;//检测周期
+    private int checkPeriod = 1000;//检测周期
 
     private boolean allowMultiSocketPerDevice = false;//是否需要单设备多连接，如双卡设备
     private Map<String, ClientChannel> connected = new ConcurrentHashMap<>();//已连接集合
     private Map<String, ClientChannel> onLines = new ConcurrentHashMap<>();//已在线集合
     private Map<String, List<ClientChannel>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
 
-    private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);
+    private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
+    private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
 
     private AtomicInteger totalConnectNum = new AtomicInteger(0);//总连接次数
     private AtomicInteger totalCloseNum = new AtomicInteger(0);//总关闭次数
@@ -234,12 +281,24 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
     }
 
     class StateChangeEvent {
-        private int state;//0:下线 1：上线
+        /**
+         * 0:下线 1：上线
+         */
+        private int state;
         ClientChannel session;
 
         public StateChangeEvent(ClientChannel session, int state) {
             this.session = session;
             this.state = state;
+        }
+    }
+
+    class ConnectDetail {
+
+        Map<String, String> connectInfo;
+
+        public ConnectDetail(Map<String, String> connectInfo) {
+            this.connectInfo = connectInfo;
         }
     }
 }

@@ -247,23 +247,7 @@ public class DateTimeUtils {
         return bytTime;
     }
 
-    /**
-     * 显示距今间隔
-     *
-     * @param second
-     * @return
-     */
-    public static String outSecond(long second) {
-        if (second < 60) {
-            return second + "秒";
-        } else if (second < 3600) {
-            return (second / 60) + "分钟" + (second % 60) + "秒";
-        } else if (second < 86400) {
-            return (second / 3660) + "小时" + ((second / 60) % 60) + "分钟";
-        } else {
-            return (second / 86400) + "天" + ((second / 3600) % 24) + "小时";
-        }
-    }
+
 
     public static String outEpochMilli(long currentMill) {
         Instant instant = Instant.ofEpochMilli(currentMill);

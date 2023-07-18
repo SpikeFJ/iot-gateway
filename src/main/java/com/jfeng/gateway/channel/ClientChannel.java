@@ -2,16 +2,15 @@ package com.jfeng.gateway.channel;
 
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.Utils;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.time.ZonedDateTime;
 import java.util.*;
+
+import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.CLIENT_CHANNEL_ATTRIBUTE_KEY;
 
 /**
  * 通道连接
@@ -36,6 +35,7 @@ public class ClientChannel {
 
     private Channel channel;
     private ChannelStatus channelStatus;
+    private String remoteAddress;
     private String localAddress;
 
 
@@ -46,7 +46,8 @@ public class ClientChannel {
         this.channel = channel;
         this.channelStatus = ChannelStatus.INITIAL;
         this.channelId = this.channel.id().asLongText();
-        this.localAddress = Utils.getAddressInfo(channel.remoteAddress());
+        this.remoteAddress = Utils.getAddressInfo(channel.remoteAddress());
+        this.localAddress = Utils.getAddressInfo(channel.localAddress());
         this.createTime = ZonedDateTime.now().toInstant().toEpochMilli();
 
         log.info("建立连接：" + this);
@@ -82,7 +83,10 @@ public class ClientChannel {
     public void close(String closeReason) {
         this.channelStatus = ChannelStatus.CLOSED;
         this.closeReason = closeReason;
-
+        this.channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).getAndSet(null);
+        if (this.channel != null) {
+            channel.close();
+        }
         listeners.stream().forEach(x -> x.onDisConnect(this, closeReason));
     }
 
@@ -90,7 +94,7 @@ public class ClientChannel {
     @Override
     public String toString() {
         StringBuilder s = new StringBuilder();
-        s.append(",").append(localAddress);
+        s.append(",").append(remoteAddress);
         s.append(",创建时间:" + DateTimeUtils.outEpochMilli(createTime));
 
         if (lastReadTime != 0) {
