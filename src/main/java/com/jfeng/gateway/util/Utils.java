@@ -10,7 +10,7 @@ public class Utils {
     }
 
     public static String getIp(InetSocketAddress inetSocketAddress) {
-        return inetSocketAddress.getHostName();
+        return inetSocketAddress.getHostString();
     }
 
     public static int getPort(InetSocketAddress inetSocketAddress) {

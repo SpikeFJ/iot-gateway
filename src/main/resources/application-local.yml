@@ -1,1 +1,15 @@
-url: http://127.0.0.1:30000/decode
+server:
+  port: 9000
+spring:
+  kafka:
+    bootstrap-servers:  10.62.1.222:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: iot-gateway-1
+  redis:
+    enable: true
+    host: 127.0.0.1
+    port: 6379
+    timeout: 30000

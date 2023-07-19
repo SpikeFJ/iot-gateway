@@ -1,6 +1,5 @@
 package com.jfeng.gateway.protocol;
 
-import com.jfeng.gateway.ValidException;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ByteProcessor;
 import lombok.Getter;
@@ -52,8 +51,6 @@ public class StandardProtocol4 implements Protocol {
             throw new Exception("协议解析失败：缺少解析数据。");
         }
 
-        int cursor = 0;
-
         if (in.readByte() != HEADER) {
             throw new Exception("协议解析失败：起始符错误");
         }
@@ -71,7 +68,8 @@ public class StandardProtocol4 implements Protocol {
 
         int dataLength = in.readUnsignedShort();
 
-        in.forEachByte(from, cursor + dataLength, checkCodeProcessor);
+        checkCodeProcessor.reset();
+        in.forEachByte(from, 22 + dataLength, checkCodeProcessor);
 
         int expected = checkCodeProcessor.getCheckCode();
         this.checkCode = in.getByte(availableBytes - 1);
@@ -80,6 +78,7 @@ public class StandardProtocol4 implements Protocol {
             throw new ValidException(this.checkCode, expected);
         }
 
+        this.body = new byte[dataLength];
         in.readBytes(this.body, 0, dataLength);
     }
 
@@ -119,6 +118,10 @@ public class StandardProtocol4 implements Protocol {
         public boolean process(byte value) throws Exception {
             checkCode ^= value;
             return true;
+        }
+
+        private void reset() {
+            this.checkCode = (byte) 0x00;
         }
     }
 }

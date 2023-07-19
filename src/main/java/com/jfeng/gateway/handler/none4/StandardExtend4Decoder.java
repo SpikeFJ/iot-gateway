@@ -1,12 +1,13 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.ValidException;
+import com.jfeng.gateway.protocol.ValidException;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.channel.ChannelManage;
 import com.jfeng.gateway.channel.ChannelStatus;
 import com.jfeng.gateway.channel.ClientChannel;
 import com.jfeng.gateway.protocol.StandardProtocol4;
 import com.jfeng.gateway.util.TransactionIdUtils;
+import com.jfeng.gateway.util.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.Channel;
@@ -40,11 +41,10 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         Channel channel = ctx.channel();
 
-        ClientChannel clientChannel = new ClientChannel(channel);
-        clientChannel.getListeners().add(ChannelManage.getInstance("tcp"));
+        ClientChannel clientChannel = new ClientChannel(channel, ChannelManage.getInstance("tcp", Utils.getAddressInfo(channel.localAddress())));
+        MDC.put(Constant.LOG_ADDRESS, clientChannel.getChannel().toString());
 
         channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).set(clientChannel);
-        log.info("连接建立：" + channel);
         clientChannel.connect();
     }
 
@@ -52,7 +52,7 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
     protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
         Object obj = super.decode(ctx, in);
         if (obj == null) {
-            log.warn("未解析出数据：" + in.toString());
+            log.debug("接收>>:分包数据：" + in.toString());
             return null;
         }
 
@@ -61,23 +61,15 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
         try {
             byteBuf = (ByteBuf) obj;
 
-            MDC.put(Constant.TRANSACTION_ID, TransactionIdUtils.get(client.getChannelId()));
-            log.debug("接收>>:" + ByteBufUtil.hexDump(byteBuf));
+            MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(client.getShortChannelId()));
+            log.info("接收>>:" + ByteBufUtil.hexDump(byteBuf));
 
             client.receive(ByteBufUtil.getBytes(byteBuf));
 
-            StandardProtocol4 protocol4 = null;
-            try {
-                protocol4 = new StandardProtocol4();
-                protocol4.decode(byteBuf);
-            } catch (ValidException validException) {
-                log.warn("校验异常", validException);
-            }
+            StandardProtocol4 protocol4 = new StandardProtocol4();
+            protocol4.decode(byteBuf);
 
-            //TODO 该服务本身是否能够处理
-//            if (canHandle(client.getChannelStatus(), protocol4.getCmd())) {
-//                return protocol4;
-//            }
+            return protocol4;
         } catch (Exception e) {
             client.close("decode处理异常:" + e.getMessage());
         } finally {

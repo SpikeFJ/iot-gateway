@@ -1,4 +1,4 @@
-package com.jfeng.gateway;
+package com.jfeng.gateway.protocol;
 
 public class ValidException extends Exception {
     private int expect;

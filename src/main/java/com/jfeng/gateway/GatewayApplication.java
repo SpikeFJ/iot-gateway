@@ -2,6 +2,7 @@ package com.jfeng.gateway;
 
 import com.jfeng.gateway.config.GateWayConfig;
 import com.jfeng.gateway.handler.none4.IpFilterHandler;
+import com.jfeng.gateway.handler.none4.LoginHandler;
 import com.jfeng.gateway.handler.none4.StandardExtend4Decoder;
 import com.jfeng.gateway.handler.none4.StandardProtocol4Encoder;
 import io.netty.bootstrap.ServerBootstrap;
@@ -62,6 +63,7 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
                             pipeline.addLast(new IpFilterHandler(tcpItem.getBlackIpList(), tcpItem.getWhiteIpList()));
                             pipeline.addLast(new StandardExtend4Decoder());
                             pipeline.addLast(new StandardProtocol4Encoder());
+                            pipeline.addLast(new LoginHandler());
                         }
                     });
 
@@ -80,6 +82,7 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
     }
 
     private static ApplicationContext application;
+
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         application = applicationContext;

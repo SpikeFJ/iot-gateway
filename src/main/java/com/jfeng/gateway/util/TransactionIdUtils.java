@@ -16,11 +16,11 @@ public class TransactionIdUtils {
 
     static AtomicInteger seq = new AtomicInteger(0);
 
-    public static String get(String clientId) {
+    public static String get(String channelId) {
         LocalDateTime now = LocalDateTime.now();
 
         StringBuilder sb = new StringBuilder();
-        sb.append(clientId == null ? INITIAL_DID : clientId);
+        sb.append(channelId == null ? INITIAL_DID : channelId);
         sb.append(now.getYear());
         sb.append(StringUtils.fill(String.valueOf(now.getMonthValue()), ZERO, TWO));
         sb.append(StringUtils.fill(String.valueOf(now.getDayOfMonth()), ZERO, TWO));

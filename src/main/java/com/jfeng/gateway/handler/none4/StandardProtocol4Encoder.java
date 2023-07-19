@@ -3,6 +3,7 @@ package com.jfeng.gateway.handler.none4;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.channel.ClientChannel;
 import com.jfeng.gateway.protocol.StandardProtocol4;
+import com.jfeng.gateway.util.TransactionIdUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -28,9 +29,9 @@ public class StandardProtocol4Encoder extends MessageToByteEncoder<StandardProto
         if (client != null) {
             client.send(ByteBufUtil.getBytes(byteBuf));
 
-            MDC.put(Constant.TRANSACTION_ID, client.getChannelId());
+            MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(client.getShortChannelId()));
             log.info("发送<<:" + ByteBufUtil.hexDump(byteBuf));
-            MDC.remove(Constant.TRANSACTION_ID);
+            MDC.remove(Constant.LOG_TRANSACTION_ID);
         }
     }
 
