@@ -6,8 +6,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.Date;
 
 public class DateTimeUtils2 {
@@ -28,12 +26,20 @@ public class DateTimeUtils2 {
         return outString(LocalDateTime.now(), "yyyy-MM-dd HH:mm:ss");
     }
 
+    public static String outNowWithMill() {
+        return outString(LocalDateTime.now(), "yyyy-MM-dd HH:mm:ss SSS");
+    }
+
     public static String outString(LocalDateTime value, String format) {
         return value.format(DateTimeFormatter.ofPattern(format));
     }
 
     public static String outString(Date value, String format) {
         return outString(value.getTime(), format);
+    }
+
+    public static String outString(long value) {
+        return outString(value, "yyyy-MM-dd HH:mm:ss");
     }
 
     public static String outString(long value, String format) {

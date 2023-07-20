@@ -73,6 +73,9 @@ public class ClientChannel {
     }
 
     public void login() {
+        if (this.channel != null && (MDC.getCopyOfContextMap() == null || MDC.getCopyOfContextMap().size() == 0)) {
+            MDC.put(Constant.LOG_ADDRESS, getChannel().toString());
+        }
         log.info("登陆：" + this);
         this.channelStatus = ChannelStatus.LOGIN;
         listeners.stream().forEach(x -> x.online(this));
@@ -130,4 +133,6 @@ public class ClientChannel {
 
         return s.substring(1);
     }
+
+
 }

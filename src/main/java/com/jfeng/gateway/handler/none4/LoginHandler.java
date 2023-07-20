@@ -26,7 +26,6 @@ public class LoginHandler extends MessageToMessageDecoder<StandardProtocol4> {
                 clientChannel.close("客户端已关闭，来自登录处理。");
                 return;
             }
-
             //1.重复登录
             String terminalNo = protocol4.getTerminalNo();
             clientChannel.checkDupdicate(terminalNo);
@@ -61,7 +60,7 @@ public class LoginHandler extends MessageToMessageDecoder<StandardProtocol4> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ClientChannel clientChannel = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
         if (clientChannel != null) {
-            clientChannel.close("登录异常断开：" + cause.getMessage());
+            clientChannel.close("异常断开：" + cause.getMessage());
         }
     }
 }

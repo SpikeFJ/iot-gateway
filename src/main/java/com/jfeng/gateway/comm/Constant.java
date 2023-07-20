@@ -3,10 +3,17 @@ package com.jfeng.gateway.comm;
 public class Constant {
     //<------------在线设备流量信息---------->
     public static final String SYSTEM_PREFIX = "iot:";
-    public static final String ONLINE = SYSTEM_PREFIX + "online:";
+    public static final String MODULE_MACHINE = SYSTEM_PREFIX + "machine:";
+    public static final String MACHINE_SUMMARY = MODULE_MACHINE + "%s" + ":SUMMARY";
+    public static final String MACHINE_CONNECTED = MODULE_MACHINE + "%s" + ":CONNECTED";
+    public static final String MACHINE_ONLINE = MODULE_MACHINE + "%s" + ":ONLINE";
 
-    public static final String ONLINE_LOCATION = SYSTEM_PREFIX + "online:location:";
+    /**
+     * 设备和所在机器映射关系
+     */
+    public static final String ONLINE_MAPPING = SYSTEM_PREFIX + "online:mapping:";
 
+    //<-----------------在线数据----------------------->
     public static final String ONLINE_INFO_REMOTE_ADDRESS = "remote_address";
     public static final String ONLINE_INFO_PACKET_ID = "packet_id";
     public static final String ONLINE_INFO_ID = "id";
@@ -21,9 +28,7 @@ public class Constant {
     public static final String ONLINE_INFO_TOTAL_MILL = "total_mill";
 
     //<------------服务器流量信息---------->
-
     public static final String MACHINE = "machine";
-    public static final String ONLINE_MACHINE = SYSTEM_PREFIX + MACHINE + ":";
     public static final String TOTAL_ONLINE = "total_online";
     public static final String TOTAL_CONNECTED = "total_connected";
     public static final String TOTAL_CONNECT_NUM = "total_connect_num";
@@ -33,6 +38,7 @@ public class Constant {
     public static final String TOTAL_RECEIVE_PACKETS = "total_receive_packets";
     public static final String TOTAL_RECEIVE_BYTES = "total_receive_bytes";
     public static final String LAST_REFRESH_TIME = "last_refresh_time";
+
     //<----日志附加信息------>
     public static final String LOG_TRANSACTION_ID = "TRANSACTION_ID";
     public static final String LOG_ADDRESS = "ADDRESS";

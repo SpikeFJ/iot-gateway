@@ -4,16 +4,13 @@ import com.jfeng.gateway.GatewayApplication;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
 import com.jfeng.gateway.config.GateWayConfig;
-import com.jfeng.gateway.message.Message;
 import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.RedisUtils;
 import com.jfeng.gateway.util.StringUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -66,10 +63,10 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
                     StateChangeEvent event = stateChangeEvent.take();
                     ClientChannel clientChannel = event.session;
 
-                    String onlineKey = Constant.ONLINE + clientChannel.getPacketId();
+                    String onlineKey = "iot:machine:" + clientChannel.getLocalAddress() + ":online:" + clientChannel.getPacketId();
+                    String mappingKey = "iot:online:" + clientChannel.getPacketId();
 
                     Map<String, String> oldOnlineInfo;
-
                     //维护上一次因为异常未保存的历史连接信息
                     if (redisUtils.hasKey(onlineKey) && ((oldOnlineInfo = redisUtils.entries(onlineKey)) != null)) {
                         long endTime = event.state == 1 ? Long.parseLong(oldOnlineInfo.get(Constant.ONLINE_INFO_LAST_REFRESH_TIME)) : System.currentTimeMillis();
@@ -80,14 +77,13 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
                     }
 
                     if (event.state == 1) {
-                        //上线
-                        saveChannel(clientChannel);
+                        Map<String, String> mapping = new HashMap<>();
+                        mapping.put(Constant.MACHINE, clientChannel.getLocalAddress());
+                        mapping.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
+                        redisUtils.putAll(mappingKey, mapping);
                     } else {
-                        //下线
-                        redisUtils.delete(onlineKey);
-                        redisUtils.delete(Constant.ONLINE_LOCATION + clientChannel.getPacketId());
+                        redisUtils.delete(mappingKey);
                     }
-
 
                 } catch (Exception e) {
                     log.warn("在线列表存储异常：", e);
@@ -106,6 +102,8 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
                         } else if (value.getChannelStatus() == ChannelStatus.CONNECTED) {
                             if (timeOut(value.getCreateTime(), loginTimeout)) {
                                 value.close("登录超时,超时间隔：" + loginTimeout / 1000 + "s." + value);
+                            } else {
+                                saveConnectInfo(value);
                             }
                         }
                     }
@@ -121,7 +119,7 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
                                 session.close("心跳超时,超时间隔：" + heartTimeout / 1000 + "s." + session.getChannel().toString());
                             } else {
                                 //定时记录连接信息
-                                saveChannel(session);
+                                saveOnlineInfo(session);
                             }
                         } else {
                             session.close("设备状态异常关闭：" + session.getChannel().toString());
@@ -152,7 +150,7 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
                     hashValue.put(Constant.TOTAL_RECEIVE_BYTES, String.valueOf(totalReceiveBytes));
                     hashValue.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
 
-                    redisUtils.putAll(Constant.ONLINE_MACHINE + localAddress, hashValue);
+                    redisUtils.putAll("iot:machine:" + localAddress + ":summary", hashValue);
                 } catch (Exception e) {
                     log.warn("总流量统计", e);
                 } finally {
@@ -189,29 +187,39 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
 
     }
 
-    private void saveChannel(ClientChannel channel) {
-        String onlineKey = Constant.ONLINE + channel.getPacketId();
-        String onlineLocationKey = Constant.ONLINE_LOCATION + channel.getPacketId();
+    private void saveConnectInfo(ClientChannel channel) {
+        String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":connect:" + channel.getRemoteAddress();
+
+        Map<String, String> hashValue = new HashMap<>();
+        hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(channel.getCreateTime()));
+        hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
+
+        redisUtils.putAll(onlineKey, hashValue);
+    }
+
+    private void saveOnlineInfo(ClientChannel channel) {
+        String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":online:" + channel.getPacketId();
+        String onlineLocationKey = Constant.ONLINE_MAPPING + channel.getPacketId();
 
         Map<String, String> hashValue = new HashMap<>();
         hashValue.put(Constant.ONLINE_INFO_REMOTE_ADDRESS, channel.getRemoteAddress());
 
         hashValue.put(Constant.ONLINE_INFO_PACKET_ID, channel.getPacketId());
         hashValue.put(Constant.ONLINE_INFO_ID, channel.getId());
-        hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, String.valueOf(channel.getCreateTime()));
+        hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(channel.getCreateTime()));
 
         hashValue.put(Constant.ONLINE_INFO_RECEIVE_PACKETS, String.valueOf(channel.getReceivedPackets()));
         hashValue.put(Constant.ONLINE_INFO_RECEIVE_BYTES, String.valueOf(channel.getReceivedBytes()));
-        hashValue.put(Constant.ONLINE_INFO_LAST_RECEIVE_TIME, String.valueOf(channel.getLastReadTime()));
+        hashValue.put(Constant.ONLINE_INFO_LAST_RECEIVE_TIME, DateTimeUtils2.outString(channel.getLastReadTime()));
 
         hashValue.put(Constant.ONLINE_INFO_SEND_PACKETS, String.valueOf(channel.getSendPackets()));
         hashValue.put(Constant.ONLINE_INFO_SEND_BYTES, String.valueOf(channel.getSendBytes()));
-        hashValue.put(Constant.ONLINE_INFO_LAST_SEND_TIME, String.valueOf(channel.getLastWriteTime()));
+        hashValue.put(Constant.ONLINE_INFO_LAST_SEND_TIME, DateTimeUtils2.outString(channel.getLastWriteTime()));
 
-        hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, String.valueOf(ZonedDateTime.now().toInstant().toEpochMilli()));
+        hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
 
         redisUtils.putAll(onlineKey, hashValue);
-        //redisUtils.expire(onlineKey, 5, TimeUnit.MINUTES);
+        redisUtils.expire(onlineKey, 5, TimeUnit.MINUTES);
         //3. 维护设备和所属机器的关系
         Map<String, String> mapping = new HashMap<>();
         mapping.put(Constant.MACHINE, channel.getLocalAddress());
@@ -249,7 +257,6 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
     private AtomicLong totalReceivePackets = new AtomicLong(0L);//总接收包数量
     private AtomicLong totalReceiveBytes = new AtomicLong(0L);//总接收字节数
 
-
     @Override
     public void onConnect(ClientChannel clientChannel) {
         String channelId = clientChannel.getChannelId();
@@ -259,7 +266,6 @@ public class ChannelManage<T extends ClientChannel> implements ChannelEventListe
         }
         totalConnectNum.getAndIncrement();
         connected.putIfAbsent(channelId, clientChannel);
-
     }
 
     @Override

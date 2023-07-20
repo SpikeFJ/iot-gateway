@@ -1,10 +1,9 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.protocol.ValidException;
-import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.channel.ChannelManage;
 import com.jfeng.gateway.channel.ChannelStatus;
 import com.jfeng.gateway.channel.ClientChannel;
+import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.protocol.StandardProtocol4;
 import com.jfeng.gateway.util.TransactionIdUtils;
 import com.jfeng.gateway.util.Utils;
