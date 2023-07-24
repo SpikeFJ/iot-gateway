@@ -56,7 +56,7 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
                 protected void initChannel(SocketChannel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
                     pipeline.addLast(new IpFilterHandler(tcpItem.getBlackIpList(), tcpItem.getWhiteIpList()));
-                    pipeline.addLast(executors, new EventStatisticsHandler());
+                    pipeline.addLast(new EventStatisticsHandler());
                     pipeline.addLast(new StandardExtend4Decoder());
                     pipeline.addLast(new StandardProtocol4Encoder());
                     pipeline.addLast(new LoginHandler());

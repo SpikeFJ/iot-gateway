@@ -75,10 +75,7 @@ public class TcpChannel {
     }
 
     public void login() {
-        if (this.channel != null && (MDC.getCopyOfContextMap() == null || MDC.getCopyOfContextMap().size() == 0)) {
-            MDC.put(Constant.LOG_ADDRESS, getChannel().toString());
-        }
-        log.info("登陆：" + this);
+        log.info("登陆");
         this.channelStatus = ChannelStatus.LOGIN;
         onlineStateListeners.stream().forEach(x -> x.online(this));
     }
@@ -139,6 +136,4 @@ public class TcpChannel {
 
         return s.substring(1);
     }
-
-
 }

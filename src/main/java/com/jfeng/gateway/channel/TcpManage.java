@@ -4,6 +4,7 @@ import com.jfeng.gateway.GatewayApplication;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
 import com.jfeng.gateway.config.GateWayConfig;
+import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.RedisUtils;
 import com.jfeng.gateway.util.StringUtils;
@@ -63,7 +64,7 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
                     TcpChannel tcpChannel = event.session;
 
                     String onlineKey = "iot:machine:" + tcpChannel.getLocalAddress() + ":online:" + tcpChannel.getPacketId();
-                    String mappingKey = "iot:online:" + tcpChannel.getPacketId();
+                    String mappingKey = Constant.ONLINE_MAPPING + tcpChannel.getPacketId();
 
                     Map<String, String> oldOnlineInfo;
                     //维护上一次因为异常未保存的历史连接信息
@@ -101,11 +102,8 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
                             iterConnected.remove();
                         } else if (value.getChannelStatus() == ChannelStatus.CONNECTED) {
                             if (timeOut(value.getCreateTime(), loginTimeout)) {
-                                value.close("登录超时,超时间隔：" + loginTimeout / 1000 + "s." + value);
+                                value.close("连接超时,超时间隔：" + loginTimeout / 1000 + "s. 连接创建时间:" + DateTimeUtils.outEpochMilli(value.getCreateTime()));
                             }
-//                            else {
-//                                saveConnectInfo(value);
-//                            }
                         }
                     }
 
@@ -117,12 +115,8 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
                             iterLogined.remove();
                         } else if (session.getChannelStatus() == ChannelStatus.LOGIN) {
                             if (timeOut(session.getLastReadTime(), heartTimeout)) {
-                                session.close("心跳超时,超时间隔：" + heartTimeout / 1000 + "s." + session.getChannel().toString());
+                                session.close("心跳超时,超时间隔：" + heartTimeout / 1000 + "s. 最后接收时间：" + DateTimeUtils.outEpochMilli(session.getLastReadTime()));
                             }
-//                            else {
-//                                //定时记录连接信息
-//                                saveOnlineInfo(session);
-//                            }
                         } else {
                             session.close("设备状态异常关闭：" + session.getChannel().toString());
                         }
@@ -256,7 +250,7 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
 
         //未登录连接
         if (StringUtils.isEmpty(packetId)) {
-            TcpChannel removed = connected.remove(packetId);
+            TcpChannel removed = connected.remove(tcpChannel.getLocalAddress());
             if (removed != null) {
                 Offline(tcpChannel, reason);
             }
@@ -275,6 +269,10 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
         if (!this.connected.remove(tcpChannel.getChannelId(), tcpChannel)) {
             log.warn("移除连接会话失败");
         }
+        tcpChannel.getChannel().eventLoop().execute(() -> {
+            String onlineKey = "iot:machine:" + tcpChannel.getLocalAddress() + ":connect:" + tcpChannel.getRemoteAddress();
+            redisUtils.delete(onlineKey);
+        });
 
         String packetId = tcpChannel.getPacketId();
         TcpChannel clientOld = this.onLines.putIfAbsent(packetId, tcpChannel);

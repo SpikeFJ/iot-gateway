@@ -16,15 +16,5 @@ public class StandardProtocol4Encoder extends MessageToByteEncoder<StandardProto
         if (protocol4 == null) throw new Exception("缺少协议对象");
 
         protocol4.encode(byteBuf);
-//        TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
-//        if (client != null) {
-//            client.send(ByteBufUtil.getBytes(byteBuf));
-//            if ((MDC.getCopyOfContextMap() == null || MDC.getCopyOfContextMap().size() == 0)) {
-//                MDC.put(Constant.LOG_ADDRESS, client.getChannel().toString());
-//            }
-//            MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(client.getShortChannelId()));
-//            log.info("发送<<:" + ByteBufUtil.hexDump(byteBuf));
-//            MDC.remove(Constant.LOG_TRANSACTION_ID);
-//        }
     }
 }

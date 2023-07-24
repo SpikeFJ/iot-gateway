@@ -28,12 +28,11 @@ public class EventStatisticsHandler extends ChannelDuplexHandler {
         Channel channel = ctx.channel();
 
         TcpChannel tcpChannel = new TcpChannel(channel, TcpManage.getInstance(Utils.getAddressInfo(channel.localAddress())));
-        MDC.put(Constant.LOG_ADDRESS, tcpChannel.getChannel().toString());
-
         channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).set(tcpChannel);
+
+        MDC.put(Constant.LOG_ADDRESS, channel.toString());
         tcpChannel.connect();
 
-        log.info("建立连接");
         super.channelActive(ctx);
     }
 
@@ -43,7 +42,7 @@ public class EventStatisticsHandler extends ChannelDuplexHandler {
 
         ByteBuf byteBuf = (ByteBuf) msg;
         client.receive(ByteBufUtil.getBytes(byteBuf));
-        log.info("接收数据1："+ByteBufUtil.hexDump(byteBuf));
+        log.debug("接收数据(原始)：" + ByteBufUtil.hexDump(byteBuf));
         super.channelRead(ctx, msg);
     }
 
@@ -53,9 +52,7 @@ public class EventStatisticsHandler extends ChannelDuplexHandler {
         if (client != null) {
             ByteBuf byteBuf = (ByteBuf) msg;
             client.send(ByteBufUtil.getBytes(byteBuf));
-            if ((MDC.getCopyOfContextMap() == null || MDC.getCopyOfContextMap().size() == 0)) {
-                MDC.put(Constant.LOG_ADDRESS, client.getChannel().toString());
-            }
+
             MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(client.getShortChannelId()));
             log.info("发送<<:" + ByteBufUtil.hexDump(byteBuf));
             MDC.remove(Constant.LOG_TRANSACTION_ID);
