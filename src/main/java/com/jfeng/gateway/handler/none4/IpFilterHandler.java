@@ -1,6 +1,6 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.channel.ClientChannel;
+import com.jfeng.gateway.channel.TcpChannel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class IpFilterHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        ClientChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
         if (client != null) {
             client.close("异常断开：" + cause.getMessage());
         }

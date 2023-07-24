@@ -1,10 +1,7 @@
 package com.jfeng.gateway;
 
 import com.jfeng.gateway.config.GateWayConfig;
-import com.jfeng.gateway.handler.none4.IpFilterHandler;
-import com.jfeng.gateway.handler.none4.LoginHandler;
-import com.jfeng.gateway.handler.none4.StandardExtend4Decoder;
-import com.jfeng.gateway.handler.none4.StandardProtocol4Encoder;
+import com.jfeng.gateway.handler.none4.*;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -59,7 +56,8 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
                 protected void initChannel(SocketChannel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
                     pipeline.addLast(new IpFilterHandler(tcpItem.getBlackIpList(), tcpItem.getWhiteIpList()));
-                    pipeline.addLast(executors, new StandardExtend4Decoder());
+                    pipeline.addLast(executors, new EventStatisticsHandler());
+                    pipeline.addLast(new StandardExtend4Decoder());
                     pipeline.addLast(new StandardProtocol4Encoder());
                     pipeline.addLast(new LoginHandler());
                 }

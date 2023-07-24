@@ -1,15 +1,12 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.channel.ChannelManage;
 import com.jfeng.gateway.channel.ChannelStatus;
-import com.jfeng.gateway.channel.ClientChannel;
+import com.jfeng.gateway.channel.TcpChannel;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.protocol.StandardProtocol4;
 import com.jfeng.gateway.util.TransactionIdUtils;
-import com.jfeng.gateway.util.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.util.AttributeKey;
@@ -30,40 +27,29 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
     public static final Integer LENGTH_ADJUST = 1;
     public static final Integer BYTES_STRIP = 0;
     public static final boolean FAIL_FAST = true;
-    public static final AttributeKey<ClientChannel> CLIENT_CHANNEL_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
+    public static final AttributeKey<TcpChannel> CLIENT_CHANNEL_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
 
     public StandardExtend4Decoder() {
         super(ByteOrder.BIG_ENDIAN, MAX_FRAME_LENGTH, LENGTH_FIELD_OFFSET, LENGTH_FIELD_LENGTH, LENGTH_ADJUST, BYTES_STRIP, FAIL_FAST);
     }
 
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        Channel channel = ctx.channel();
-
-        ClientChannel clientChannel = new ClientChannel(channel, ChannelManage.getInstance("tcp", Utils.getAddressInfo(channel.localAddress())));
-        MDC.put(Constant.LOG_ADDRESS, clientChannel.getChannel().toString());
-
-        channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).set(clientChannel);
-        clientChannel.connect();
-    }
 
     @Override
     protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
         Object obj = super.decode(ctx, in);
         if (obj == null) {
-            log.debug("接收>>:分包数据：" + in.toString());
             return null;
         }
 
-        ClientChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
         ByteBuf byteBuf = null;
         try {
             byteBuf = (ByteBuf) obj;
 
+            client.receiveComplete(ByteBufUtil.getBytes(byteBuf));
+
             MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(client.getShortChannelId()));
             log.info("接收>>:" + ByteBufUtil.hexDump(byteBuf));
-
-            client.receive(ByteBufUtil.getBytes(byteBuf));
 
             StandardProtocol4 protocol4 = new StandardProtocol4();
             protocol4.decode(byteBuf);
@@ -91,22 +77,5 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
      */
     private boolean canHandle(ChannelStatus channelStatus, int cmd) throws Exception {
         return false;
-    }
-
-
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ClientChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
-        if (client != null) {
-            client.close("主动断开");
-        }
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        ClientChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
-        if (client != null) {
-            client.close("异常断开：" + cause.getMessage());
-        }
     }
 }
