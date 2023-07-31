@@ -1,6 +1,5 @@
 package com.jfeng.gateway.comm;
 
-import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,7 +21,7 @@ public class CollectionSetting {
      */
     private String heartCode;
     /**
-     * 采集间隔，单位：毫秒
+     * 采集间隔，单位：秒
      */
     private int connectPeriod;
 
@@ -32,7 +31,11 @@ public class CollectionSetting {
     private List<SlaveSetting> slaveSettings = new ArrayList<>();
 
 
-    public void encode(ByteBuf out) {
-
+    public List<String> initModbus() {
+        List<String> modbus = new ArrayList<>();
+        for (SlaveSetting slaveSetting : slaveSettings) {
+            modbus.addAll(slaveSetting.initModbusCode());
+        }
+        return modbus;
     }
 }

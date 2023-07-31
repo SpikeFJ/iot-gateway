@@ -1,11 +1,17 @@
 package com.jfeng.gateway.comm;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+@Getter
+@Setter
 public class Instance {
 
-    private Map<String, CollectionSetting> settings = new HashMap<>();
+    public static Map<String, CollectionSetting> settings = new HashMap<>();
 
     static {
         CollectionSetting collectionSetting = new CollectionSetting();
@@ -32,5 +38,9 @@ public class Instance {
 
         slaveSetting.getRegisterSettings().add(registerSetting1);
         slaveSetting.getRegisterSettings().add(registerSetting2);
+
+
+        List<String> strings = collectionSetting.initModbus();
+        System.out.printf("");
     }
 }

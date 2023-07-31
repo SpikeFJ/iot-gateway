@@ -1,10 +1,12 @@
 package com.jfeng.gateway;
 
+import com.jfeng.gateway.comm.CollectionSetting;
+import com.jfeng.gateway.comm.Instance;
 import com.jfeng.gateway.config.GateWayConfig;
-import com.jfeng.gateway.handler.none4.*;
-import com.jfeng.gateway.util.Crc16Utils;
+import com.jfeng.gateway.handler.none4.EventStatisticsHandler;
+import com.jfeng.gateway.handler.none4.IpFilterHandler;
+import com.jfeng.gateway.handler.none4.StandardProtocol4Encoder;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -20,7 +22,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import javax.annotation.Resource;
-import java.nio.charset.Charset;
+import java.util.Map;
 
 @SpringBootApplication
 @Slf4j
@@ -30,12 +32,14 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
     public GateWayConfig config;
 
     public static void main(String[] args) {
-        Charset ascii = Charset.forName("ASCII");
-        byte[] bytes = ByteBufUtil.decodeHexDump("040300000001");
-        String s = new String(bytes, ascii);
-
-        byte[] crc3 = Crc16Utils.getCRC3(bytes, 0, bytes.length);
+//        Charset ascii = Charset.forName("ASCII");
+//        byte[] bytes = ByteBufUtil.decodeHexDump("040300000001");
+//        String s = new String(bytes, ascii);
+//
+//        byte[] crc3 = Crc16Utils.getCRC3(bytes, 0, bytes.length);
         SpringApplication.run(GatewayApplication.class);
+        Map<String, CollectionSetting> settings = Instance.settings;
+        System.out.printf("" + settings);
     }
 
     private static final Integer SO_BACKLOG = 128;
