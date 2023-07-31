@@ -101,8 +101,8 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
                         if (value == null || value.getChannelStatus() == ChannelStatus.CLOSED) {
                             iterConnected.remove();
                         } else if (value.getChannelStatus() == ChannelStatus.CONNECTED) {
-                            if (timeOut(value.getCreateTime(), loginTimeout)) {
-                                value.close("连接超时,超时间隔：" + loginTimeout / 1000 + "s. 连接创建时间:" + DateTimeUtils.outEpochMilli(value.getCreateTime()));
+                            if (loginTimeout > 0 && timeOut(value.getCreateTime(), loginTimeout)) {
+                                value.close("登陆超时,超时间隔：" + loginTimeout / 1000 + "s. 连接创建时间:" + DateTimeUtils.outEpochMilli(value.getCreateTime()));
                             }
                         }
                     }
@@ -114,7 +114,7 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
                         if (session == null || session.getChannelStatus() == ChannelStatus.CLOSED) {
                             iterLogined.remove();
                         } else if (session.getChannelStatus() == ChannelStatus.LOGIN) {
-                            if (timeOut(session.getLastReadTime(), heartTimeout)) {
+                            if (heartTimeout > 0 && timeOut(session.getLastReadTime(), heartTimeout)) {
                                 session.close("心跳超时,超时间隔：" + heartTimeout / 1000 + "s. 最后接收时间：" + DateTimeUtils.outEpochMilli(session.getLastReadTime()));
                             }
                         } else {
@@ -168,9 +168,15 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
         kafkaTemplate = GatewayApplication.getObject(KafkaTemplate.class);
         GateWayConfig gateWayConfig = GatewayApplication.getObject(GateWayConfig.class);
         GateWayConfig.ConfigItem item = gateWayConfig.getTcp();
-        this.checkPeriod = Integer.parseInt(item.getParameter().getOrDefault("checkPeriod", "5000"));
-        this.loginTimeout = Integer.parseInt(item.getParameter().getOrDefault("loginTimeout", "60000"));
-        this.heartTimeout = Integer.parseInt(item.getParameter().getOrDefault("heartTimeout", "60000"));
+        if (item.getParameter().get("checkPeriod") != null) {
+            this.checkPeriod = Integer.parseInt(item.getParameter().get("checkPeriod"));
+        }
+        if (item.getParameter().get("loginTimeout") != null) {
+            this.loginTimeout = Integer.parseInt(item.getParameter().get("loginTimeout"));
+        }
+        if (item.getParameter().get("heartTimeout") != null) {
+            this.heartTimeout = Integer.parseInt(item.getParameter().get("heartTimeout"));
+        }
     }
 
 
@@ -184,10 +190,10 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
 
 
     private volatile boolean isRunning = true;
-    private int loginTimeout = 1000 * 60;//登陆超时
-    private int heartTimeout = 1000 * 60 * 3;//心跳超时
-    private int timeoutCheckInterval = 1000 * 3;//检测周期
-    private int checkPeriod = 1000;//检测周期
+    private int loginTimeout;//登陆超时
+    private int heartTimeout;//心跳超时
+    private int timeoutCheckInterval;//检测周期
+    private int checkPeriod;//检测周期
 
     private boolean allowMultiSocketPerDevice = false;//是否需要单设备多连接，如双卡设备
     private Map<String, TcpChannel> connected = new ConcurrentHashMap<>();//已连接集合

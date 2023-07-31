@@ -7,13 +7,17 @@ import com.jfeng.gateway.util.TransactionIdUtils;
 import com.jfeng.gateway.util.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.AttributeKey;
+import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * 事件统计handler（包括收单个连接的收发数据、连接、断开次数)
@@ -25,24 +29,33 @@ public class EventStatisticsHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        Channel channel = ctx.channel();
+        //log.debug("建立连接", ctx.channel().remoteAddress());
 
+        Channel channel = ctx.channel();
         TcpChannel tcpChannel = new TcpChannel(channel, TcpManage.getInstance(Utils.getAddressInfo(channel.localAddress())));
         channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).set(tcpChannel);
 
         MDC.put(Constant.LOG_ADDRESS, channel.toString());
         tcpChannel.connect();
-
         super.channelActive(ctx);
+
+        channel.eventLoop().scheduleAtFixedRate(()->{
+            ByteBuf buffer = Unpooled.buffer();
+            buffer.writeBytes(ByteBufUtil.decodeHexDump("040300000001845F"));
+
+            String s1 ="040300000001";
+            channel.writeAndFlush(buffer);
+        },30,10, TimeUnit.SECONDS);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
-
+        ChannelPromise channelPromise = ctx.newPromise();
         ByteBuf byteBuf = (ByteBuf) msg;
         client.receive(ByteBufUtil.getBytes(byteBuf));
         log.debug("接收数据(原始)：" + ByteBufUtil.hexDump(byteBuf));
+        ReferenceCountUtil.release(byteBuf);
         super.channelRead(ctx, msg);
     }
 
@@ -71,9 +84,10 @@ public class EventStatisticsHandler extends ChannelDuplexHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("异常断开", cause.getMessage());
         TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
         if (client != null) {
-            client.close("异常断开：" + cause.getMessage());
+            client.close(cause.getMessage());
         }
         super.exceptionCaught(ctx, cause);
     }
