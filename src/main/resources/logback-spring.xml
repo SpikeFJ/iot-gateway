@@ -7,7 +7,7 @@
         <!--<Encoding>UTF-8</Encoding>-->
         <layout class="ch.qos.logback.classic.PatternLayout">
             <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} -%X{ADDRESS} -%X{TRANSACTION_ID} [%-5level] [%thread] %logger{500}-%msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}-%X{ADDRESS}-%msg%n</pattern>
         </layout>
     </appender>
     <!-- 按照每天生成错误日志文件 -->

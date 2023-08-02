@@ -17,6 +17,9 @@ public class RegisterSetting {
      * 长度
      */
     private int length;
+
+    private int dataType;
+    private int decimalLength;
     /**
      * 编码
      */

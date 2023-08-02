@@ -31,10 +31,10 @@ public class CollectionSetting {
     private List<SlaveSetting> slaveSettings = new ArrayList<>();
 
 
-    public List<String> initModbus() {
-        List<String> modbus = new ArrayList<>();
+    public List<Modbus> getModbusList() {
+        List<Modbus> modbus = new ArrayList<>();
         for (SlaveSetting slaveSetting : slaveSettings) {
-            modbus.addAll(slaveSetting.initModbusCode());
+            modbus.addAll(slaveSetting.getModbusList());
         }
         return modbus;
     }

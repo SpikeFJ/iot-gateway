@@ -9,7 +9,7 @@ server:
 gateway:
   tcp:
     enable: true
-    port: 31000
+    port: 30000
     dstTopic: tcp_topic # 转发目的地
     parameter: {
       protocol: abc, # 对应的解析协议，第一个handler应该是分包handler

@@ -88,6 +88,12 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
 
                 } catch (Exception e) {
                     log.warn("在线列表存储异常：", e);
+                } finally {
+                    try {
+                        Thread.sleep(checkPeriod);
+                    } catch (InterruptedException e) {
+
+                    }
                 }
             }
         });
@@ -170,6 +176,8 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
         GateWayConfig.ConfigItem item = gateWayConfig.getTcp();
         if (item.getParameter().get("checkPeriod") != null) {
             this.checkPeriod = Integer.parseInt(item.getParameter().get("checkPeriod"));
+        } else {
+            this.checkPeriod = 10000;
         }
         if (item.getParameter().get("loginTimeout") != null) {
             this.loginTimeout = Integer.parseInt(item.getParameter().get("loginTimeout"));
@@ -222,7 +230,7 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
 
         tcpChannel.getChannel().eventLoop().scheduleAtFixedRate(() -> {
             saveSingleChannel(tcpChannel);
-        }, 0, 1, TimeUnit.SECONDS);
+        }, 0, 10, TimeUnit.SECONDS);
     }
 
     @Override
@@ -234,18 +242,18 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
 
     @Override
     public void onReceiveComplete(TcpChannel tcpChannel, byte[] data) {
-        tcpChannel.getChannel().eventLoop().execute(() -> {
-            //写入到kafka
-        });
+//        tcpChannel.getChannel().eventLoop().execute(() -> {
+//            //写入到kafka
+//        });
     }
 
     @Override
     public void onSend(TcpChannel tcpChannel, byte[] data) {
         totalSendPackets.getAndIncrement();
         totalSendBytes.getAndAdd(data.length);
-        tcpChannel.getChannel().eventLoop().execute(() -> {
-            //写入到kafka
-        });
+//        tcpChannel.getChannel().eventLoop().execute(() -> {
+//            //写入到kafka
+//        });
     }
 
     @Override
@@ -289,17 +297,17 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
             this.onLinesSpare.get(packetId).add(tcpChannel);
         }
         stateChangeEvent.offer(new StateChangeEvent(tcpChannel, 1));
-        tcpChannel.getChannel().eventLoop().execute(() -> {
-            //写入到kafka
-        });
+//        tcpChannel.getChannel().eventLoop().execute(() -> {
+//            //写入到kafka
+//        });
     }
 
     @Override
     public void Offline(TcpChannel tcpChannel, String message) {
         stateChangeEvent.offer(new StateChangeEvent(tcpChannel, 0));
-        tcpChannel.getChannel().eventLoop().execute(() -> {
-            //写入到kafka
-        });
+//        tcpChannel.getChannel().eventLoop().execute(() -> {
+//            //写入到kafka
+//        });
     }
 
     /**
