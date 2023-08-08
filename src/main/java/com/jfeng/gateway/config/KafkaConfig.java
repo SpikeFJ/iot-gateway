@@ -14,7 +14,6 @@ import java.util.Map;
 @Configuration
 @ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
 public class KafkaConfig {
-
     @Bean
     public KafkaTemplate kafkaTemplate() {
         DefaultKafkaProducerFactory<String, String> producerFactory = new DefaultKafkaProducerFactory<>(producerConfigs());

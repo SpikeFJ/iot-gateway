@@ -15,4 +15,4 @@ spring:
     timeout: 30000
 logging:
   level:
-    com.jfeng.gateway: debug
+    com.jfeng.gateway: info

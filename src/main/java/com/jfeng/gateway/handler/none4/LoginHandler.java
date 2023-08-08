@@ -16,7 +16,6 @@ import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.CLIENT_CHAN
  */
 @Slf4j
 public class LoginHandler extends MessageToMessageDecoder<StandardProtocol4> {
-
     @Override
     protected void decode(ChannelHandlerContext ctx, StandardProtocol4 protocol4, List<Object> list) throws Exception {
         if (protocol4 != null && protocol4.getCmd() == 0x01) {
