@@ -1,7 +1,7 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.channel.ChannelStatus;
-import com.jfeng.gateway.channel.TcpChannel;
+import com.jfeng.gateway.channel.SessionStatus;
+import com.jfeng.gateway.channel.TcpSession;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.protocol.StandardProtocol4;
 import com.jfeng.gateway.util.TransactionIdUtils;
@@ -27,7 +27,7 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
     public static final Integer LENGTH_ADJUST = 1;
     public static final Integer BYTES_STRIP = 0;
     public static final boolean FAIL_FAST = true;
-    public static final AttributeKey<TcpChannel> CLIENT_CHANNEL_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
+    public static final AttributeKey<TcpSession> CLIENT_CHANNEL_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
 
     public StandardExtend4Decoder() {
         super(ByteOrder.BIG_ENDIAN, MAX_FRAME_LENGTH, LENGTH_FIELD_OFFSET, LENGTH_FIELD_LENGTH, LENGTH_ADJUST, BYTES_STRIP, FAIL_FAST);
@@ -41,7 +41,7 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
             return null;
         }
 
-        TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
         ByteBuf byteBuf = null;
         try {
             byteBuf = (ByteBuf) obj;
@@ -70,12 +70,12 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
     /**
      * 判断接入层是否能够处理
      *
-     * @param channelStatus 客户端状态
+     * @param sessionStatus 客户端状态
      * @param cmd           命令字
      * @return true:接入层处理 false:交由解析层处理
      * @throws Exception
      */
-    private boolean canHandle(ChannelStatus channelStatus, int cmd) throws Exception {
+    private boolean canHandle(SessionStatus sessionStatus, int cmd) throws Exception {
         return false;
     }
 }

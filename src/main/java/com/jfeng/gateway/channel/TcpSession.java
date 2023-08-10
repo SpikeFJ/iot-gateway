@@ -15,12 +15,12 @@ import java.util.*;
 import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.CLIENT_CHANNEL_ATTRIBUTE_KEY;
 
 /**
- * Tcp通道连接
+ * Tcp会话
  */
 @Getter
 @Setter
 @Slf4j
-public class TcpChannel {
+public class TcpSession {
     private String channelId;//物理通道链路唯一标识
     private String shortChannelId;//物理通道链路唯一标识(简写用于日志)
     private String packetId;//协议层面（也就是可以从报文中提取的）唯一标识
@@ -37,22 +37,22 @@ public class TcpChannel {
     private long sendPackets;
 
     private Channel channel;
-    private ChannelStatus channelStatus;
+    private SessionStatus sessionStatus;
     private String remoteAddress;
     private String localAddress;
-    private TcpManage<TcpChannel> tcpManage;
+    private TcpSessionManage<TcpSession> tcpSessionManage;
 
     private Map<String, Object> tag = new HashMap<>();
-    private List<ChannelEventListener> channelListeners = new ArrayList<>();
+    private List<SessionListener> channelListeners = new ArrayList<>();
     private List<OnlineStateChangeListener> onlineStateListeners = new ArrayList<>();
 
-    public TcpChannel(Channel channel, TcpManage<TcpChannel> tcpManage) {
+    public TcpSession(Channel channel, TcpSessionManage<TcpSession> tcpSessionManage) {
         this.channel = channel;
-        this.tcpManage = tcpManage;
-        this.channelListeners.add(tcpManage);
-        this.onlineStateListeners.add(tcpManage);
+        this.tcpSessionManage = tcpSessionManage;
+        this.channelListeners.add(tcpSessionManage);
+        this.onlineStateListeners.add(tcpSessionManage);
 
-        this.channelStatus = ChannelStatus.INITIAL;
+        this.sessionStatus = SessionStatus.INITIAL;
         this.channelId = this.channel.id().asLongText();
         this.shortChannelId = this.channel.id().asShortText();
         this.remoteAddress = Utils.getAddressInfo(channel.remoteAddress());
@@ -63,20 +63,20 @@ public class TcpChannel {
 
     public void connect() {
         log.info("连接建立,建立时间：" + DateTimeUtils.outEpochMilli(createTime));
-        this.channelStatus = ChannelStatus.CONNECTED;
+        this.sessionStatus = SessionStatus.CONNECTED;
         channelListeners.stream().forEach(x -> x.onConnect(this));
     }
 
     public void checkDupdicate(String packetId) {
-        if (this.tcpManage.contains(packetId)) {
-            TcpChannel old = this.tcpManage.getOnLines().get(packetId);
+        if (this.tcpSessionManage.contains(packetId)) {
+            TcpSession old = this.tcpSessionManage.getOnLines().get(packetId);
             old.close("重复登录");
         }
     }
 
     public void login() {
         log.info("登陆");
-        this.channelStatus = ChannelStatus.LOGIN;
+        this.sessionStatus = SessionStatus.LOGIN;
         onlineStateListeners.stream().forEach(x -> x.online(this));
     }
 
@@ -111,7 +111,7 @@ public class TcpChannel {
         MDC.remove(Constant.LOG_ADDRESS);
         MDC.remove(Constant.LOG_TRANSACTION_ID);
 
-        this.channelStatus = ChannelStatus.CLOSED;
+        this.sessionStatus = SessionStatus.CLOSED;
         this.closeReason = closeReason;
         this.channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).getAndSet(null);
         if (this.channel != null) {

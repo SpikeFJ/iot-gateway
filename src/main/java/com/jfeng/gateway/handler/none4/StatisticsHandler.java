@@ -1,7 +1,7 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.channel.TcpChannel;
-import com.jfeng.gateway.channel.TcpManage;
+import com.jfeng.gateway.channel.TcpSession;
+import com.jfeng.gateway.channel.TcpSessionManage;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.util.TransactionIdUtils;
 import com.jfeng.gateway.util.Utils;
@@ -22,24 +22,24 @@ import org.slf4j.MDC;
 @Slf4j
 public class StatisticsHandler extends ChannelDuplexHandler {
 
-    public static final AttributeKey<TcpChannel> CLIENT_CHANNEL_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
+    public static final AttributeKey<TcpSession> CLIENT_CHANNEL_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         log.debug("建立连接", ctx.channel().remoteAddress());
 
         Channel channel = ctx.channel();
-        TcpChannel tcpChannel = new TcpChannel(channel, TcpManage.getInstance(Utils.getAddressInfo(channel.localAddress())));
-        channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).set(tcpChannel);
+        TcpSession tcpSession = new TcpSession(channel, TcpSessionManage.getInstance(Utils.getAddressInfo(channel.localAddress())));
+        channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).set(tcpSession);
 
         MDC.put(Constant.LOG_ADDRESS, channel.toString());
-        tcpChannel.connect();
+        tcpSession.connect();
         super.channelActive(ctx);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
 
         ByteBuf byteBuf = (ByteBuf) msg;
         client.receive(ByteBufUtil.getBytes(byteBuf));
@@ -51,7 +51,7 @@ public class StatisticsHandler extends ChannelDuplexHandler {
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-        TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
         if (client != null) {
             ByteBuf byteBuf = (ByteBuf) msg;
             client.send(ByteBufUtil.getBytes(byteBuf));
@@ -65,7 +65,7 @@ public class StatisticsHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
         if (client != null) {
             client.close("主动断开");
         }
@@ -75,7 +75,7 @@ public class StatisticsHandler extends ChannelDuplexHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("异常断开", cause.getMessage());
-        TcpChannel client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
         if (client != null) {
             client.close(cause.getMessage());
         }

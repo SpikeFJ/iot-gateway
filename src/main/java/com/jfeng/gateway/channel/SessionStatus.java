@@ -1,9 +1,9 @@
 package com.jfeng.gateway.channel;
 
 /**
- * 通道状态
+ * 会话状态
  */
-public enum ChannelStatus {
+public enum SessionStatus {
     /**
      * 默认状态
      */

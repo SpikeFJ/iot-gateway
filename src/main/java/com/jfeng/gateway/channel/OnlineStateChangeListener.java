@@ -8,15 +8,15 @@ public interface OnlineStateChangeListener {
     /**
      * 上线通知
      *
-     * @param tcpChannel 客户端channel
+     * @param tcpSession 客户端channel
      */
-    void online(TcpChannel tcpChannel);
+    void online(TcpSession tcpSession);
 
     /**
      * 下线通知
      *
-     * @param tcpChannel 客户端channel
+     * @param tcpSession 客户端channel
      * @param message       下线原因
      */
-    void Offline(TcpChannel tcpChannel, String message);
+    void Offline(TcpSession tcpSession, String message);
 }

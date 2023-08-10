@@ -3,7 +3,7 @@ package com.jfeng.gateway.protocol;
 import io.netty.buffer.ByteBuf;
 
 /**
- * 协议
+ * 通讯协议
  */
 public interface Protocol {
     /**

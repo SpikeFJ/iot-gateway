@@ -26,23 +26,23 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Slf4j
 @Getter
-public class TcpManage<T extends TcpChannel> implements ChannelEventListener, OnlineStateChangeListener {
-    private static Map<String, TcpManage> instances = new ConcurrentHashMap<>();
+public class TcpSessionManage<T extends TcpSession> implements SessionListener, OnlineStateChangeListener {
+    private static Map<String, TcpSessionManage> instances = new ConcurrentHashMap<>();
     private final String localAddress;
 
-    public static TcpManage getInstance(String localAddress) {
-        TcpManage tcpManage = instances.get(localAddress);
-        if (tcpManage == null) {
-            tcpManage = new TcpManage(localAddress);
-            TcpManage old = instances.putIfAbsent(localAddress, tcpManage);
+    public static TcpSessionManage getInstance(String localAddress) {
+        TcpSessionManage tcpSessionManage = instances.get(localAddress);
+        if (tcpSessionManage == null) {
+            tcpSessionManage = new TcpSessionManage(localAddress);
+            TcpSessionManage old = instances.putIfAbsent(localAddress, tcpSessionManage);
             if (old != null) {
-                tcpManage = old;
+                tcpSessionManage = old;
             }
         }
-        return tcpManage;
+        return tcpSessionManage;
     }
 
-    private TcpManage(String localAddress) {
+    private TcpSessionManage(String localAddress) {
         this.localAddress = localAddress;
         init();
 
@@ -61,10 +61,10 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
             while (isRunning) {
                 try {
                     StateChangeEvent event = stateChangeEvent.take();
-                    TcpChannel tcpChannel = event.session;
+                    TcpSession tcpSession = event.session;
 
-                    String onlineKey = "iot:machine:" + tcpChannel.getLocalAddress() + ":online:" + tcpChannel.getPacketId();
-                    String mappingKey = Constant.ONLINE_MAPPING + tcpChannel.getPacketId();
+                    String onlineKey = "iot:machine:" + tcpSession.getLocalAddress() + ":online:" + tcpSession.getPacketId();
+                    String mappingKey = Constant.ONLINE_MAPPING + tcpSession.getPacketId();
 
                     Map<String, String> oldOnlineInfo;
                     //维护上一次因为异常未保存的历史连接信息
@@ -79,7 +79,7 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
 
                     if (event.state == 1) {
                         Map<String, String> mapping = new HashMap<>();
-                        mapping.put(Constant.MACHINE, tcpChannel.getLocalAddress());
+                        mapping.put(Constant.MACHINE, tcpSession.getLocalAddress());
                         mapping.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
                         redisUtils.putAll(mappingKey, mapping);
                     } else {
@@ -95,12 +95,12 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
                     //1.移除所有已关闭连接、登录超时连接
-                    Iterator<Map.Entry<String, TcpChannel>> iterConnected = connected.entrySet().iterator();
+                    Iterator<Map.Entry<String, TcpSession>> iterConnected = connected.entrySet().iterator();
                     while (iterConnected.hasNext()) {
-                        TcpChannel value = iterConnected.next().getValue();
-                        if (value == null || value.getChannelStatus() == ChannelStatus.CLOSED) {
+                        TcpSession value = iterConnected.next().getValue();
+                        if (value == null || value.getSessionStatus() == SessionStatus.CLOSED) {
                             iterConnected.remove();
-                        } else if (value.getChannelStatus() == ChannelStatus.CONNECTED) {
+                        } else if (value.getSessionStatus() == SessionStatus.CONNECTED) {
                             if (loginTimeout > 0 && timeOut(value.getCreateTime(), loginTimeout)) {
                                 value.close("登陆超时,超时间隔：" + loginTimeout / 1000 + "s. 连接创建时间:" + DateTimeUtils.outEpochMilli(value.getCreateTime()));
                             }
@@ -108,12 +108,12 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
                     }
 
                     //2. 心跳超时，已登录的终端指定时间没有发送发送
-                    Iterator<Map.Entry<String, TcpChannel>> iterLogined = onLines.entrySet().iterator();
+                    Iterator<Map.Entry<String, TcpSession>> iterLogined = onLines.entrySet().iterator();
                     while (iterLogined.hasNext()) {
-                        TcpChannel session = iterLogined.next().getValue();
-                        if (session == null || session.getChannelStatus() == ChannelStatus.CLOSED) {
+                        TcpSession session = iterLogined.next().getValue();
+                        if (session == null || session.getSessionStatus() == SessionStatus.CLOSED) {
                             iterLogined.remove();
-                        } else if (session.getChannelStatus() == ChannelStatus.LOGIN) {
+                        } else if (session.getSessionStatus() == SessionStatus.LOGIN) {
                             if (heartTimeout > 0 && timeOut(session.getLastReadTime(), heartTimeout)) {
                                 session.close("心跳超时,超时间隔：" + heartTimeout / 1000 + "s. 最后接收时间：" + DateTimeUtils.outEpochMilli(session.getLastReadTime()));
                             }
@@ -196,9 +196,9 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
     private int checkPeriod;//检测周期
 
     private boolean allowMultiSocketPerDevice = false;//是否需要单设备多连接，如双卡设备
-    private Map<String, TcpChannel> connected = new ConcurrentHashMap<>();//已连接集合
-    private Map<String, TcpChannel> onLines = new ConcurrentHashMap<>();//已在线集合
-    private Map<String, List<TcpChannel>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
+    private Map<String, TcpSession> connected = new ConcurrentHashMap<>();//已连接集合
+    private Map<String, TcpSession> onLines = new ConcurrentHashMap<>();//已在线集合
+    private Map<String, List<TcpSession>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
 
     private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
     private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
@@ -211,93 +211,93 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
     private AtomicLong totalReceiveBytes = new AtomicLong(0L);//总接收字节数
 
     @Override
-    public void onConnect(TcpChannel tcpChannel) {
-        String channelId = tcpChannel.getChannelId();
+    public void onConnect(TcpSession tcpSession) {
+        String channelId = tcpSession.getChannelId();
 
         if (this.connected.containsKey(channelId)) {
-            this.connected.get(channelId).close("会话重复连接：" + tcpChannel);
+            this.connected.get(channelId).close("会话重复连接：" + tcpSession);
         }
         totalConnectNum.getAndIncrement();
-        connected.putIfAbsent(channelId, tcpChannel);
+        connected.putIfAbsent(channelId, tcpSession);
 
-        tcpChannel.getChannel().eventLoop().scheduleAtFixedRate(() -> {
-            saveSingleChannel(tcpChannel);
+        tcpSession.getChannel().eventLoop().scheduleAtFixedRate(() -> {
+            saveSingleChannel(tcpSession);
         }, 0, 1, TimeUnit.SECONDS);
     }
 
     @Override
-    public void onReceive(TcpChannel tcpChannel, byte[] data) {
+    public void onReceive(TcpSession tcpSession, byte[] data) {
         totalReceiveBytes.getAndIncrement();
         totalReceivePackets.getAndAdd(data.length);
     }
 
 
     @Override
-    public void onReceiveComplete(TcpChannel tcpChannel, byte[] data) {
-        tcpChannel.getChannel().eventLoop().execute(() -> {
+    public void onReceiveComplete(TcpSession tcpSession, byte[] data) {
+        tcpSession.getChannel().eventLoop().execute(() -> {
             //写入到kafka
         });
     }
 
     @Override
-    public void onSend(TcpChannel tcpChannel, byte[] data) {
+    public void onSend(TcpSession tcpSession, byte[] data) {
         totalSendPackets.getAndIncrement();
         totalSendBytes.getAndAdd(data.length);
-        tcpChannel.getChannel().eventLoop().execute(() -> {
+        tcpSession.getChannel().eventLoop().execute(() -> {
             //写入到kafka
         });
     }
 
     @Override
-    public void onDisConnect(TcpChannel tcpChannel, String reason) {
+    public void onDisConnect(TcpSession tcpSession, String reason) {
         totalCloseNum.getAndIncrement();
 
-        String packetId = tcpChannel.getPacketId();
+        String packetId = tcpSession.getPacketId();
 
         //未登录连接
         if (StringUtils.isEmpty(packetId)) {
-            TcpChannel removed = connected.remove(tcpChannel.getLocalAddress());
+            TcpSession removed = connected.remove(tcpSession.getLocalAddress());
             if (removed != null) {
-                Offline(tcpChannel, reason);
+                Offline(tcpSession, reason);
             }
         }
         //已登录连接
         else {
-            TcpChannel removed = onLines.remove(packetId);
+            TcpSession removed = onLines.remove(packetId);
             if (removed != null) {
-                Offline(tcpChannel, reason);
+                Offline(tcpSession, reason);
             }
         }
     }
 
     @Override
-    public void online(TcpChannel tcpChannel) {
-        if (!this.connected.remove(tcpChannel.getChannelId(), tcpChannel)) {
+    public void online(TcpSession tcpSession) {
+        if (!this.connected.remove(tcpSession.getChannelId(), tcpSession)) {
             log.warn("移除连接会话失败");
         }
-        tcpChannel.getChannel().eventLoop().execute(() -> {
-            String onlineKey = "iot:machine:" + tcpChannel.getLocalAddress() + ":connect:" + tcpChannel.getRemoteAddress();
+        tcpSession.getChannel().eventLoop().execute(() -> {
+            String onlineKey = "iot:machine:" + tcpSession.getLocalAddress() + ":connect:" + tcpSession.getRemoteAddress();
             redisUtils.delete(onlineKey);
         });
 
-        String packetId = tcpChannel.getPacketId();
-        TcpChannel clientOld = this.onLines.putIfAbsent(packetId, tcpChannel);
+        String packetId = tcpSession.getPacketId();
+        TcpSession clientOld = this.onLines.putIfAbsent(packetId, tcpSession);
         if (clientOld != null && allowMultiSocketPerDevice) {
             if (this.onLinesSpare.containsKey(packetId) == false) {
                 this.onLinesSpare.put(packetId, new ArrayList<>());
             }
-            this.onLinesSpare.get(packetId).add(tcpChannel);
+            this.onLinesSpare.get(packetId).add(tcpSession);
         }
-        stateChangeEvent.offer(new StateChangeEvent(tcpChannel, 1));
-        tcpChannel.getChannel().eventLoop().execute(() -> {
+        stateChangeEvent.offer(new StateChangeEvent(tcpSession, 1));
+        tcpSession.getChannel().eventLoop().execute(() -> {
             //写入到kafka
         });
     }
 
     @Override
-    public void Offline(TcpChannel tcpChannel, String message) {
-        stateChangeEvent.offer(new StateChangeEvent(tcpChannel, 0));
-        tcpChannel.getChannel().eventLoop().execute(() -> {
+    public void Offline(TcpSession tcpSession, String message) {
+        stateChangeEvent.offer(new StateChangeEvent(tcpSession, 0));
+        tcpSession.getChannel().eventLoop().execute(() -> {
             //写入到kafka
         });
     }
@@ -307,13 +307,13 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
      *
      * @param channel
      */
-    private void saveSingleChannel(TcpChannel channel) {
+    private void saveSingleChannel(TcpSession channel) {
         if (channel == null) {
             log.warn("连接已关闭");
             channel.close("检测到连接关闭");
             return;
         }
-        if (channel.getChannelStatus() == ChannelStatus.CONNECTED) {
+        if (channel.getSessionStatus() == SessionStatus.CONNECTED) {
             String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":connect:" + channel.getRemoteAddress();
 
             Map<String, String> hashValue = new HashMap<>();
@@ -321,7 +321,7 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
             hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
 
             redisUtils.putAll(onlineKey, hashValue);
-        } else if (channel.getChannelStatus() == ChannelStatus.LOGIN) {
+        } else if (channel.getSessionStatus() == SessionStatus.LOGIN) {
             String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":online:" + channel.getPacketId();
             String onlineLocationKey = Constant.ONLINE_MAPPING + channel.getPacketId();
 
@@ -360,9 +360,9 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
          * 0:下线 1：上线
          */
         private int state;
-        TcpChannel session;
+        TcpSession session;
 
-        public StateChangeEvent(TcpChannel session, int state) {
+        public StateChangeEvent(TcpSession session, int state) {
             this.session = session;
             this.state = state;
         }
