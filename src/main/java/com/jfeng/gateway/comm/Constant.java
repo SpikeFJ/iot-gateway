@@ -46,4 +46,19 @@ public class Constant {
     //<----日志附加信息------>
     public static final String LOG_TRANSACTION_ID = "TRANSACTION_ID";
     public static final String LOG_ADDRESS = "ADDRESS";
+
+    //<!--------------------启动参数---------------------------->
+    public static final String PORT = "PORT";
+    public static final String ENABLE = "ENABLE";
+    public static final String BLACK_IP_LIST = "BLACK_IP_LIST";
+    public static final String WHITE_IP_LIST = "WHITE_IP_LIST";
+    //TCP 检测周期
+    public static final String TCP_SO_BACKLOG = "TCP_SO_BACKLOG";
+    public static final String TCP_SO_RCV_BUF = "TCP_SO_RCV_BUF";
+    public static final String TCP_SO_SND_BUF = "TCP_SO_SND_BUF";
+    public static final String TCP_CHECK_PERIOD = "TCP_CHECK_PERIOD";
+    //TCP登陆超时
+    public static final String TCP_LOGIN_TIMEOUT = "TCP_LOGIN_TIMEOUT";
+    //TCP心跳超时
+    public static final String TCP_HEART_TIMEOUT = "TCP_HEART_TIMEOUT";
 }

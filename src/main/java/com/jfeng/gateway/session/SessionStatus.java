@@ -5,10 +5,6 @@ package com.jfeng.gateway.session;
  */
 public enum SessionStatus {
     /**
-     * 默认状态
-     */
-    INITIAL,
-    /**
      * 已连接
      */
     CONNECTED,

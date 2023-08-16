@@ -52,7 +52,7 @@ public class TcpSession {
         this.channelListeners.add(tcpSessionManage);
         this.onlineStateListeners.add(tcpSessionManage);
 
-        this.sessionStatus = SessionStatus.INITIAL;
+        this.sessionStatus = SessionStatus.CONNECTED;
         this.channelId = this.channel.id().asLongText();
         this.shortChannelId = this.channel.id().asShortText();
         this.remoteAddress = Utils.getAddressInfo(channel.remoteAddress());
@@ -67,7 +67,7 @@ public class TcpSession {
         channelListeners.stream().forEach(x -> x.onConnect(this));
     }
 
-    public void checkDupdicate(String packetId) {
+    public void checkDuplicate(String packetId) {
         if (this.tcpSessionManage.contains(packetId)) {
             TcpSession old = this.tcpSessionManage.getOnLines().get(packetId);
             old.close("重复登录");

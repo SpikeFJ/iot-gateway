@@ -33,7 +33,6 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
         super(ByteOrder.BIG_ENDIAN, MAX_FRAME_LENGTH, LENGTH_FIELD_OFFSET, LENGTH_FIELD_LENGTH, LENGTH_ADJUST, BYTES_STRIP, FAIL_FAST);
     }
 
-
     @Override
     protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
         Object obj = super.decode(ctx, in);

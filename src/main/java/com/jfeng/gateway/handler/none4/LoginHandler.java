@@ -26,7 +26,7 @@ public class LoginHandler extends MessageToMessageDecoder<StandardProtocol4> {
             }
             //1.重复登录
             String terminalNo = protocol4.getTerminalNo();
-            tcpSession.checkDupdicate(terminalNo);
+            tcpSession.checkDuplicate(terminalNo);
             //3.响应
             ctx.writeAndFlush(buildLoginResp(protocol4, true));
             //4.维护终端唯一标识
