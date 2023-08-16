@@ -1,6 +1,7 @@
 spring:
   profiles:
     active: local
+# http服务、信息统计页面入口
 server:
   port: 30000
   compression:
@@ -40,5 +41,8 @@ gateway:
 #    enable: true
 #    port: 33000
 #    parameter: {
-#
 #    }
+logging:
+  level:
+    com.jfeng.gateway*: debug
+

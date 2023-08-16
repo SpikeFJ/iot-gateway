@@ -1,8 +1,8 @@
 package com.jfeng.gateway.handler.none4;
 
 
-import com.jfeng.gateway.channel.SessionStatus;
-import com.jfeng.gateway.channel.TcpSession;
+import com.jfeng.gateway.session.SessionStatus;
+import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.protocol.StandardProtocol4;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;

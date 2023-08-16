@@ -8,6 +8,10 @@ public class Constant {
     public static final String MACHINE_CONNECTED = MODULE_MACHINE + "%s" + ":CONNECTED";
     public static final String MACHINE_ONLINE = MODULE_MACHINE + "%s" + ":ONLINE";
 
+    public static final Integer SO_BACKLOG = 128;
+    public static final Integer SO_RCVBUF = 1024 * 8;
+    public static final Integer SO_SNDBUF = 1024 * 8;
+
     /**
      * 设备和所在机器映射关系
      */

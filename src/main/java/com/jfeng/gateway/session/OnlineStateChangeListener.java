@@ -1,4 +1,4 @@
-package com.jfeng.gateway.channel;
+package com.jfeng.gateway.session;
 
 /**
  * 在线状态变更监听器

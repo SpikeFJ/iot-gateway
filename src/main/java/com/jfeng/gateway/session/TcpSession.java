@@ -1,4 +1,4 @@
-package com.jfeng.gateway.channel;
+package com.jfeng.gateway.session;
 
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.util.DateTimeUtils;

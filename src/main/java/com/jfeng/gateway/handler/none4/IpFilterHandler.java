@@ -1,6 +1,6 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.channel.TcpSession;
+import com.jfeng.gateway.session.TcpSession;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;

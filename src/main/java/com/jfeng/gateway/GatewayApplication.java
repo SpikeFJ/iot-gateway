@@ -48,7 +48,6 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         DefaultEventExecutorGroup executors = new DefaultEventExecutorGroup(Runtime.getRuntime().availableProcessors() * 2);
-
         try {
             ServerBootstrap serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).option(ChannelOption.SO_BACKLOG, SO_BACKLOG).childOption(ChannelOption.SO_RCVBUF, SO_RCVBUF).childOption(ChannelOption.SO_SNDBUF, SO_SNDBUF).childHandler(new ChannelInitializer<SocketChannel>() {

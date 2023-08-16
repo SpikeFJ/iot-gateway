@@ -1,10 +1,12 @@
 package com.jfeng.gateway.config;
 
+import com.jfeng.gateway.session.TcpSession;
+import com.jfeng.gateway.session.TcpSessionManage;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.catalina.util.ParameterMap;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -30,4 +32,13 @@ public class GateWayConfig {
         private List<String> whiteIpList;
         private Map<String, String> parameter;
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "gateway", name = "tcp.enable", havingValue = "true")
+    public TcpSessionManage<TcpSession> tcpSessionManage() {
+        ConfigItem tcpItem = getTcp();
+
+        return null;
+    }
+
 }
