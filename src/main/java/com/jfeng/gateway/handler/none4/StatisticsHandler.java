@@ -1,16 +1,13 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.channel.TcpSession;
-import com.jfeng.gateway.channel.TcpSessionManage;
+import com.jfeng.gateway.session.TcpSession;
+import com.jfeng.gateway.session.TcpSessionManage;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.util.TransactionIdUtils;
 import com.jfeng.gateway.util.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
+import io.netty.channel.*;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +28,8 @@ public class StatisticsHandler extends ChannelDuplexHandler {
         Channel channel = ctx.channel();
         TcpSession tcpSession = new TcpSession(channel, TcpSessionManage.getInstance(Utils.getAddressInfo(channel.localAddress())));
         channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).set(tcpSession);
-
         MDC.put(Constant.LOG_ADDRESS, channel.toString());
+
         tcpSession.connect();
         super.channelActive(ctx);
     }

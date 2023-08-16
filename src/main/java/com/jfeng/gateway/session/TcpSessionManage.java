@@ -1,4 +1,4 @@
-package com.jfeng.gateway.channel;
+package com.jfeng.gateway.session;
 
 import com.jfeng.gateway.GatewayApplication;
 import com.jfeng.gateway.comm.Constant;
@@ -45,6 +45,29 @@ public class TcpSessionManage<T extends TcpSession> implements SessionListener, 
     private TcpSessionManage(String localAddress) {
         this.localAddress = localAddress;
         init();
+    }
+
+    private RedisUtils redisUtils;
+    private KafkaTemplate kafkaTemplate;
+
+    private void initConfig() {
+        redisUtils = GatewayApplication.getObject(RedisUtils.class);
+        kafkaTemplate = GatewayApplication.getObject(KafkaTemplate.class);
+        GateWayConfig gateWayConfig = GatewayApplication.getObject(GateWayConfig.class);
+        GateWayConfig.ConfigItem item = gateWayConfig.getTcp();
+        if (item.getParameter().get("checkPeriod") != null) {
+            this.checkPeriod = Integer.parseInt(item.getParameter().get("checkPeriod"));
+        }
+        if (item.getParameter().get("loginTimeout") != null) {
+            this.loginTimeout = Integer.parseInt(item.getParameter().get("loginTimeout"));
+        }
+        if (item.getParameter().get("heartTimeout") != null) {
+            this.heartTimeout = Integer.parseInt(item.getParameter().get("heartTimeout"));
+        }
+    }
+
+    public void init(){
+        initConfig();
 
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("连接明细")).submit(() -> {
             while (isRunning) {
@@ -158,25 +181,6 @@ public class TcpSessionManage<T extends TcpSession> implements SessionListener, 
                 }
             }
         });
-    }
-
-    private RedisUtils redisUtils;
-    private KafkaTemplate kafkaTemplate;
-
-    private void init() {
-        redisUtils = GatewayApplication.getObject(RedisUtils.class);
-        kafkaTemplate = GatewayApplication.getObject(KafkaTemplate.class);
-        GateWayConfig gateWayConfig = GatewayApplication.getObject(GateWayConfig.class);
-        GateWayConfig.ConfigItem item = gateWayConfig.getTcp();
-        if (item.getParameter().get("checkPeriod") != null) {
-            this.checkPeriod = Integer.parseInt(item.getParameter().get("checkPeriod"));
-        }
-        if (item.getParameter().get("loginTimeout") != null) {
-            this.loginTimeout = Integer.parseInt(item.getParameter().get("loginTimeout"));
-        }
-        if (item.getParameter().get("heartTimeout") != null) {
-            this.heartTimeout = Integer.parseInt(item.getParameter().get("heartTimeout"));
-        }
     }
 
 
