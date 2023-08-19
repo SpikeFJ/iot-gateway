@@ -1,9 +1,11 @@
 package com.jfeng.gateway.session;
 
+import java.util.EventListener;
+
 /**
  * 在线状态变更监听器
  */
-public interface OnlineStateChangeListener {
+public interface OnlineStateChangeListener extends EventListener {
 
     /**
      * 上线通知

@@ -4,7 +4,9 @@ import java.util.Map;
 
 public interface Server {
 
-    void start(Map<String,String> parameter) throws Exception;
+    void init(Map<String,String> parameter);
+
+    void start() throws Exception;
 
     void stop();
 }

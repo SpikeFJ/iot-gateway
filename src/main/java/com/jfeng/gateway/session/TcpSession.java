@@ -1,6 +1,7 @@
 package com.jfeng.gateway.session;
 
 import com.jfeng.gateway.comm.Constant;
+import com.jfeng.gateway.server.TcpServer;
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.Utils;
 import io.netty.channel.Channel;
@@ -10,7 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
 import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.CLIENT_CHANNEL_ATTRIBUTE_KEY;
 
@@ -40,15 +44,15 @@ public class TcpSession {
     private SessionStatus sessionStatus;
     private String remoteAddress;
     private String localAddress;
-    private TcpSessionManage<TcpSession> tcpSessionManage;
+    private TcpServer tcpServer;
 
     private Map<String, Object> tag = new HashMap<>();
     private List<SessionListener> channelListeners = new ArrayList<>();
     private List<OnlineStateChangeListener> onlineStateListeners = new ArrayList<>();
 
-    public TcpSession(Channel channel, TcpSessionManage<TcpSession> tcpSessionManage) {
+    public TcpSession(Channel channel, TcpServer tcpSessionManage) {
         this.channel = channel;
-        this.tcpSessionManage = tcpSessionManage;
+        this.tcpServer = tcpSessionManage;
         this.channelListeners.add(tcpSessionManage);
         this.onlineStateListeners.add(tcpSessionManage);
 
@@ -68,8 +72,8 @@ public class TcpSession {
     }
 
     public void checkDuplicate(String packetId) {
-        if (this.tcpSessionManage.contains(packetId)) {
-            TcpSession old = this.tcpSessionManage.getOnLines().get(packetId);
+        if (this.tcpServer.contains(packetId)) {
+            TcpSession old = this.tcpServer.getOnLines().get(packetId);
             old.close("重复登录");
         }
     }

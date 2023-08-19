@@ -17,9 +17,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Component
 public class RedisUtils {
-
 	public static final String LOCK_PREFIX = "redis_lock:";
-
 
 	@Autowired
 	private RedisTemplate<String, String> redisTemplate;

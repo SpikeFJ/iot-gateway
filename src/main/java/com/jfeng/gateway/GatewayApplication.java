@@ -1,9 +1,10 @@
 package com.jfeng.gateway;
 
-import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.config.GateWayConfig;
 import com.jfeng.gateway.server.TcpServer;
-import jdk.internal.joptsimple.internal.Strings;
+import com.jfeng.gateway.session.OnlineStateChangeListener;
+import com.jfeng.gateway.session.SessionListener;
+import com.jfeng.gateway.util.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.boot.CommandLineRunner;
@@ -13,8 +14,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @SpringBootApplication
 @Slf4j
@@ -22,30 +22,28 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
 
     @Resource
     public GateWayConfig config;
+    @Resource
+    public List<OnlineStateChangeListener> onlineListener;
+    @Resource
+    public List<SessionListener> sessionListener;
+    @Resource
+    public RedisUtils redisUtils;
+
 
     public static void main(String[] args) {
         SpringApplication.run(GatewayApplication.class);
     }
 
-
     @Override
     public void run(String... args) throws Exception {
-        if (config.tcp != null && config.tcp.isEnable()) {
+        if ("TCP".equalsIgnoreCase(config.getAccessType()) && config.isEnable()) {
             TcpServer tcpServer = new TcpServer();
-            tcpServer.start(parseTcpParameter(config.getTcp()));
-        }
-        if (config.udp != null && config.udp.isEnable()) {
+            tcpServer.setOnlineListenerList(onlineListener);
+            tcpServer.setSessionListenerList(sessionListener);
+            tcpServer.setRedisUtils(redisUtils);
 
+            tcpServer.init(null);
         }
-    }
-
-    private Map<String, String> parseTcpParameter(GateWayConfig.ConfigItem configItem) {
-        Map<String, String> tcpParameters = new HashMap<>();
-        tcpParameters.put(Constant.PORT, String.valueOf(configItem.getPort()));
-        tcpParameters.put(Constant.BLACK_IP_LIST, Strings.join(configItem.getBlackIpList(), ","));
-        tcpParameters.put(Constant.WHITE_IP_LIST, Strings.join(configItem.getBlackIpList(), ","));
-        tcpParameters.putAll(configItem.getParameter());
-        return tcpParameters;
     }
 
 

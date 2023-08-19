@@ -1,9 +1,11 @@
 package com.jfeng.gateway.session;
 
+import java.util.EventListener;
+
 /**
  * 会话监听器
  */
-public interface SessionListener {
+public interface SessionListener extends EventListener {
 
     /**
      * 连接事件

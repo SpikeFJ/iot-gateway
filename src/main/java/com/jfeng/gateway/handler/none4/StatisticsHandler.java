@@ -1,10 +1,9 @@
 package com.jfeng.gateway.handler.none4;
 
 import com.jfeng.gateway.comm.Constant;
+import com.jfeng.gateway.server.TcpServer;
 import com.jfeng.gateway.session.TcpSession;
-import com.jfeng.gateway.session.TcpSessionManage;
 import com.jfeng.gateway.util.TransactionIdUtils;
-import com.jfeng.gateway.util.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.Channel;
@@ -16,23 +15,24 @@ import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
-import java.util.Map;
-
 /**
  * 统计处理器（包括收单个连接的收发数据、连接、断开次数)
  */
 @Slf4j
 public class StatisticsHandler extends ChannelDuplexHandler {
     public static final AttributeKey<TcpSession> SESSION_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
-    public StatisticsHandler(Map<String,String> parameters){
+    private final TcpServer tcpServer;
 
+    public StatisticsHandler(TcpServer tcpServer) {
+        this.tcpServer = tcpServer;
     }
+
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         log.debug("建立连接", ctx.channel().remoteAddress());
 
         Channel channel = ctx.channel();
-        TcpSession tcpSession = new TcpSession(channel, TcpSessionManage.getInstance(Utils.getAddressInfo(channel.localAddress())));
+        TcpSession tcpSession = new TcpSession(channel, tcpServer);
         channel.attr(SESSION_ATTRIBUTE_KEY).set(tcpSession);
         MDC.put(Constant.LOG_ADDRESS, channel.toString());
 
