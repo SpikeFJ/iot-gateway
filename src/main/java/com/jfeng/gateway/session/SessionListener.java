@@ -3,7 +3,7 @@ package com.jfeng.gateway.session;
 import java.util.EventListener;
 
 /**
- * 会话监听器
+ * 会话监听器,用于监听实时通知类数据
  */
 public interface SessionListener extends EventListener {
 
@@ -45,4 +45,21 @@ public interface SessionListener extends EventListener {
      * @param reason     断开原因
      */
     void onDisConnect(TcpSession tcpSession, String reason);
+
+    //------------------------online、offline是业务事件----------
+
+    /**
+     * 上线通知
+     *
+     * @param tcpSession 客户端channel
+     */
+    void online(TcpSession tcpSession);
+
+    /**
+     * 下线通知
+     *
+     * @param tcpSession 客户端channel
+     * @param message    下线原因
+     */
+    void Offline(TcpSession tcpSession, String message);
 }

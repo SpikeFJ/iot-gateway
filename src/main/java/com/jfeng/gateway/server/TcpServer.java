@@ -31,13 +31,12 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 @Getter
 @Setter
-public class TcpServer implements Server, SessionListener, OnlineStateChangeListener {
+public class TcpServer implements Server, SessionListener {
     ServerBootstrap bootstrap = new ServerBootstrap();
     EventLoopGroup bossGroup = new NioEventLoopGroup();
     EventLoopGroup workerGroup = new NioEventLoopGroup();
 
-    List<OnlineStateChangeListener> onlineListenerList;
-    List<SessionListener> sessionListenerList;
+    List<SessionListener> sessionListeners;
 
     RedisUtils redisUtils;
     String localAddress;
@@ -231,7 +230,7 @@ public class TcpServer implements Server, SessionListener, OnlineStateChangeList
         connected.putIfAbsent(channelId, tcpSession);
 
         tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListenerList) {
+            for (SessionListener listener : sessionListeners) {
                 listener.onConnect(tcpSession);
             }
         });
@@ -242,7 +241,7 @@ public class TcpServer implements Server, SessionListener, OnlineStateChangeList
         totalReceiveBytes.getAndIncrement();
         totalReceivePackets.getAndAdd(data.length);
         tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListenerList) {
+            for (SessionListener listener : sessionListeners) {
                 listener.onReceive(tcpSession, data);
             }
         });
@@ -252,7 +251,7 @@ public class TcpServer implements Server, SessionListener, OnlineStateChangeList
     @Override
     public void onReceiveComplete(TcpSession tcpSession, byte[] data) {
         tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListenerList) {
+            for (SessionListener listener : sessionListeners) {
                 listener.onReceiveComplete(tcpSession, data);
             }
         });
@@ -263,7 +262,7 @@ public class TcpServer implements Server, SessionListener, OnlineStateChangeList
         totalSendPackets.getAndIncrement();
         totalSendBytes.getAndAdd(data.length);
         tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListenerList) {
+            for (SessionListener listener : sessionListeners) {
                 listener.onSend(tcpSession, data);
             }
         });
@@ -290,7 +289,7 @@ public class TcpServer implements Server, SessionListener, OnlineStateChangeList
             }
         }
         tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListenerList) {
+            for (SessionListener listener : sessionListeners) {
                 listener.onDisConnect(tcpSession, reason);
             }
         });
@@ -312,7 +311,7 @@ public class TcpServer implements Server, SessionListener, OnlineStateChangeList
         }
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, 1));
         tcpSession.getChannel().eventLoop().execute(() -> {
-            for (OnlineStateChangeListener listener : onlineListenerList) {
+            for (SessionListener listener : sessionListeners) {
                 listener.online(tcpSession);
             }
         });
@@ -322,7 +321,7 @@ public class TcpServer implements Server, SessionListener, OnlineStateChangeList
     public void Offline(TcpSession tcpSession, String message) {
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, 0));
         tcpSession.getChannel().eventLoop().execute(() -> {
-            for (OnlineStateChangeListener listener : onlineListenerList) {
+            for (SessionListener listener : sessionListeners) {
                 listener.Offline(tcpSession, message);
             }
         });

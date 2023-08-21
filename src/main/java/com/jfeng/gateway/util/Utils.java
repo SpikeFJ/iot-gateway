@@ -2,6 +2,7 @@ package com.jfeng.gateway.util;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Map;
 
 public class Utils {
     public static String getAddressInfo(SocketAddress socketAddress) {
@@ -15,6 +16,12 @@ public class Utils {
 
     public static int getPort(InetSocketAddress inetSocketAddress) {
         return inetSocketAddress.getPort();
+    }
+
+
+    public static String get(Map<String, String> source, String key, String defaultValue) {
+        if (source.containsKey(key)) return source.get(key);
+        return defaultValue;
     }
 
     /**

@@ -2,7 +2,6 @@ package com.jfeng.gateway;
 
 import com.jfeng.gateway.config.GateWayConfig;
 import com.jfeng.gateway.server.TcpServer;
-import com.jfeng.gateway.session.OnlineStateChangeListener;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.util.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +22,6 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
     @Resource
     public GateWayConfig config;
     @Resource
-    public List<OnlineStateChangeListener> onlineListener;
-    @Resource
     public List<SessionListener> sessionListener;
     @Resource
     public RedisUtils redisUtils;
@@ -38,8 +35,7 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
     public void run(String... args) throws Exception {
         if ("TCP".equalsIgnoreCase(config.getAccessType()) && config.isEnable()) {
             TcpServer tcpServer = new TcpServer();
-            tcpServer.setOnlineListenerList(onlineListener);
-            tcpServer.setSessionListenerList(sessionListener);
+            tcpServer.setSessionListeners(sessionListener);
             tcpServer.setRedisUtils(redisUtils);
 
             tcpServer.init(null);

@@ -47,14 +47,12 @@ public class TcpSession {
     private TcpServer tcpServer;
 
     private Map<String, Object> tag = new HashMap<>();
-    private List<SessionListener> channelListeners = new ArrayList<>();
-    private List<OnlineStateChangeListener> onlineStateListeners = new ArrayList<>();
+    private List<SessionListener> sessionListeners = new ArrayList<>();
 
     public TcpSession(Channel channel, TcpServer tcpSessionManage) {
         this.channel = channel;
         this.tcpServer = tcpSessionManage;
-        this.channelListeners.add(tcpSessionManage);
-        this.onlineStateListeners.add(tcpSessionManage);
+        this.sessionListeners.add(tcpSessionManage);
 
         this.sessionStatus = SessionStatus.CONNECTED;
         this.channelId = this.channel.id().asLongText();
@@ -68,7 +66,7 @@ public class TcpSession {
     public void connect() {
         log.info("连接建立,建立时间：" + DateTimeUtils.outEpochMilli(createTime));
         this.sessionStatus = SessionStatus.CONNECTED;
-        channelListeners.stream().forEach(x -> x.onConnect(this));
+        sessionListeners.stream().forEach(x -> x.onConnect(this));
     }
 
     public void checkDuplicate(String packetId) {
@@ -81,7 +79,7 @@ public class TcpSession {
     public void login() {
         log.info("登陆");
         this.sessionStatus = SessionStatus.LOGIN;
-        onlineStateListeners.stream().forEach(x -> x.online(this));
+        sessionListeners.stream().forEach(x -> x.online(this));
     }
 
 
@@ -90,11 +88,11 @@ public class TcpSession {
         receivedPackets += 1;
         this.lastReadTime = ZonedDateTime.now().toInstant().toEpochMilli();
 
-        channelListeners.stream().forEach(x -> x.onReceive(this, receive));
+        sessionListeners.stream().forEach(x -> x.onReceive(this, receive));
     }
 
     public void receiveComplete(byte[] receive) {
-        channelListeners.stream().forEach(x -> x.onReceiveComplete(this, receive));
+        sessionListeners.stream().forEach(x -> x.onReceiveComplete(this, receive));
     }
 
     public void send(byte[] send) {
@@ -102,7 +100,7 @@ public class TcpSession {
         sendPackets += 1;
         this.lastWriteTime = ZonedDateTime.now().toInstant().toEpochMilli();
 
-        channelListeners.stream().forEach(x -> x.onSend(this, send));
+        sessionListeners.stream().forEach(x -> x.onSend(this, send));
     }
 
     public void close(String closeReason) {
@@ -121,7 +119,7 @@ public class TcpSession {
         if (this.channel != null) {
             channel.close();
         }
-        channelListeners.stream().forEach(x -> x.onDisConnect(this, closeReason));
+        sessionListeners.stream().forEach(x -> x.onDisConnect(this, closeReason));
     }
 
 
