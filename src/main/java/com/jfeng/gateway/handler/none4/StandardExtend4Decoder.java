@@ -1,5 +1,6 @@
 package com.jfeng.gateway.handler.none4;
 
+import com.jfeng.gateway.session.DispatchData;
 import com.jfeng.gateway.session.SessionStatus;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.comm.Constant;
@@ -27,7 +28,7 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
     public static final Integer LENGTH_ADJUST = 1;
     public static final Integer BYTES_STRIP = 0;
     public static final boolean FAIL_FAST = true;
-    public static final AttributeKey<TcpSession> CLIENT_CHANNEL_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
+    public static final AttributeKey<TcpSession> SESSION_KEY = AttributeKey.valueOf("sessionKey");
 
     public StandardExtend4Decoder() {
         super(ByteOrder.BIG_ENDIAN, MAX_FRAME_LENGTH, LENGTH_FIELD_OFFSET, LENGTH_FIELD_LENGTH, LENGTH_ADJUST, BYTES_STRIP, FAIL_FAST);
@@ -40,22 +41,28 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
             return null;
         }
 
-        TcpSession client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpSession session = ctx.channel().attr(SESSION_KEY).get();
         ByteBuf byteBuf = null;
         try {
             byteBuf = (ByteBuf) obj;
 
-            client.receiveComplete(ByteBufUtil.getBytes(byteBuf));
+            session.receiveComplete(ByteBufUtil.getBytes(byteBuf));
 
-            MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(client.getShortChannelId()));
+            MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(session.getShortChannelId()));
             log.info("接收>>:" + ByteBufUtil.hexDump(byteBuf));
+
 
             StandardProtocol4 protocol4 = new StandardProtocol4();
             protocol4.decode(byteBuf);
 
-            return protocol4;
+            if (canHandle(session.getSessionStatus(), protocol4.getCmd())) {
+                return protocol4;
+            }
+
+            session.getTcpServer().dispatch(session.getPacketId(), new DispatchData("", ByteBufUtil.hexDump(byteBuf)));
+
         } catch (Exception e) {
-            client.close("decode处理异常:" + e.getMessage());
+            session.close("decode处理异常:" + e.getMessage());
         } finally {
             release(byteBuf);
         }

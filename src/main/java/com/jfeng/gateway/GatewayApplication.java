@@ -2,6 +2,7 @@ package com.jfeng.gateway;
 
 import com.jfeng.gateway.config.GateWayConfig;
 import com.jfeng.gateway.server.TcpServer;
+import com.jfeng.gateway.session.Dispatcher;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.util.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,8 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
     @Resource
     public List<SessionListener> sessionListener;
     @Resource
+    public Dispatcher dispatcher;
+    @Resource
     public RedisUtils redisUtils;
 
 
@@ -37,7 +40,6 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
             TcpServer tcpServer = new TcpServer();
             tcpServer.setSessionListeners(sessionListener);
             tcpServer.setRedisUtils(redisUtils);
-
             tcpServer.init(null);
             tcpServer.start();
         }

@@ -1,21 +1,22 @@
 package com.jfeng.gateway.config;
 
+import com.jfeng.gateway.session.Dispatcher;
+import com.jfeng.gateway.session.KafkaDispatcher;
 import com.jfeng.gateway.session.SessionListener;
+import com.jfeng.gateway.session.SpringbootDispatcher;
 import com.jfeng.gateway.session.listener.KafkaNotifySessionListener;
 import com.jfeng.gateway.session.listener.RedisNotifySessionListener;
-import com.jfeng.gateway.util.RedisUtils;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,17 +29,20 @@ public class GateWayConfig implements ApplicationContextAware {
     private String accessType;//tcp udp mqtt
     private boolean enable = false;
     private int port;
-    private List<EventDataConfig> sourceData;
-    private List<EventDataConfig> onlineData;
+    private List<NotifyConfig> notification;
+
+    @Value("${dispatchType:spring}")
+    private String dispatchType;
+
     private Map<String, String> parameter;
 
-
     private ApplicationContext applicationContext;
+
     @Bean
     public List<SessionListener> sessionListener() {
         List<SessionListener> listeners = new ArrayList<>();
-        if (sourceData != null) {
-            for (EventDataConfig config : sourceData) {
+        if (notification != null) {
+            for (NotifyConfig config : notification) {
                 if ("KAFKA".equalsIgnoreCase(config.getType())) {
                     KafkaNotifySessionListener kafkaListener = applicationContext.getBean(KafkaNotifySessionListener.class);
                     kafkaListener.init(config.getTopic());
@@ -55,17 +59,15 @@ public class GateWayConfig implements ApplicationContextAware {
         return listeners;
     }
 
-
-    @Resource
-    private RedisUtils redisUtils;
-
-    @PostConstruct
-    private void loadFromDb() {
-        if (redisUtils.get("") != null) {
-            //replace sourceData
-            //
+    @Bean
+    public Dispatcher dispatcher() {
+        Dispatcher dispatcher = applicationContext.getBean(SpringbootDispatcher.class);
+        if ("kafka".equalsIgnoreCase(dispatchType)) {
+            dispatcher = applicationContext.getBean(KafkaDispatcher.class);
         }
+        return dispatcher;
     }
+
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -74,7 +76,7 @@ public class GateWayConfig implements ApplicationContextAware {
 }
 
 @Data
-class EventDataConfig {
+class NotifyConfig {
     private String type;
     private Map<String, String> topic;
 }

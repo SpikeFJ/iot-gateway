@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.InetSocketAddress;
 import java.util.List;
 
-import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.CLIENT_CHANNEL_ATTRIBUTE_KEY;
+import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.SESSION_KEY;
 
 /**
  * Ip筛选
@@ -45,7 +45,7 @@ public class IpFilterHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        TcpSession client = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(SESSION_KEY).get();
         if (client != null) {
             client.close("异常断开：" + cause.getMessage());
         }

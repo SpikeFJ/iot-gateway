@@ -9,7 +9,7 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
-import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.CLIENT_CHANNEL_ATTRIBUTE_KEY;
+import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.SESSION_KEY;
 
 /**
  * 登录处理
@@ -19,7 +19,7 @@ public class LoginHandler extends MessageToMessageDecoder<StandardProtocol4> {
     @Override
     protected void decode(ChannelHandlerContext ctx, StandardProtocol4 protocol4, List<Object> list) throws Exception {
         if (protocol4 != null && protocol4.getCmd() == 0x01) {
-            TcpSession tcpSession = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+            TcpSession tcpSession = ctx.channel().attr(SESSION_KEY).get();
             if (tcpSession == null || tcpSession.getSessionStatus() == SessionStatus.CLOSED) {
                 tcpSession.close("客户端已关闭，来自登录处理。");
                 return;
@@ -56,7 +56,7 @@ public class LoginHandler extends MessageToMessageDecoder<StandardProtocol4> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        TcpSession tcpSession = ctx.channel().attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).get();
+        TcpSession tcpSession = ctx.channel().attr(SESSION_KEY).get();
         if (tcpSession != null) {
             tcpSession.close("异常断开：" + cause.getMessage());
         }

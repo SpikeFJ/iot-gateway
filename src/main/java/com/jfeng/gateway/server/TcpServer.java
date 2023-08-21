@@ -3,6 +3,7 @@ package com.jfeng.gateway.server;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
 import com.jfeng.gateway.handler.none4.*;
+import com.jfeng.gateway.message.CommandReq;
 import com.jfeng.gateway.session.*;
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.DateTimeUtils2;
@@ -21,7 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,6 +41,7 @@ public class TcpServer implements Server, SessionListener {
     EventLoopGroup workerGroup = new NioEventLoopGroup();
 
     List<SessionListener> sessionListeners;
+    Dispatcher dispatcher;
 
     RedisUtils redisUtils;
     String localAddress;
@@ -234,7 +239,6 @@ public class TcpServer implements Server, SessionListener {
         totalReceivePackets.getAndAdd(data.length);
     }
 
-
     @Override
     public void onReceiveComplete(TcpSession tcpSession, byte[] data) {
 
@@ -289,6 +293,22 @@ public class TcpServer implements Server, SessionListener {
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, 0));
     }
 
+    /**
+     * 数据分发
+     *
+     * @param packetId
+     * @param data
+     */
+    public void dispatch(String packetId, DispatchData data) {
+        dispatcher.sendNext(packetId, data);
+    }
+
+    /**
+     * 需要将下发的请求数据外置存储，因为可能发送下行命令后掉线，在另一个机器上线。
+     */
+    public void sendCommand(CommandReq request) {
+
+    }
 
     /**
      * 连接状态切换通知
@@ -316,5 +336,9 @@ public class TcpServer implements Server, SessionListener {
         public ConnectDetail(Map<String, String> connectInfo) {
             this.connectInfo = connectInfo;
         }
+    }
+
+    class Sending {
+
     }
 }

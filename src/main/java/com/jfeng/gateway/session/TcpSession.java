@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.CLIENT_CHANNEL_ATTRIBUTE_KEY;
+import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.SESSION_KEY;
 
 /**
  * Tcp会话
@@ -118,7 +118,7 @@ public class TcpSession {
 
         this.sessionStatus = SessionStatus.CLOSED;
         this.closeReason = closeReason;
-        this.channel.attr(CLIENT_CHANNEL_ATTRIBUTE_KEY).getAndSet(null);
+        this.channel.attr(SESSION_KEY).getAndSet(null);
         if (this.channel != null) {
             channel.close();
         }
