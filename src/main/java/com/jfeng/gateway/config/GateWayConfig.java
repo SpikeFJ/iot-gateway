@@ -1,8 +1,8 @@
 package com.jfeng.gateway.config;
 
 import com.jfeng.gateway.session.SessionListener;
-import com.jfeng.gateway.session.listener.KafkaSessionListener;
-import com.jfeng.gateway.session.listener.RedisSessionListener;
+import com.jfeng.gateway.session.listener.KafkaNotifySessionListener;
+import com.jfeng.gateway.session.listener.RedisNotifySessionListener;
 import com.jfeng.gateway.util.RedisUtils;
 import lombok.Data;
 import lombok.Getter;
@@ -40,12 +40,12 @@ public class GateWayConfig implements ApplicationContextAware {
         if (sourceData != null) {
             for (EventDataConfig config : sourceData) {
                 if ("KAFKA".equalsIgnoreCase(config.getType())) {
-                    KafkaSessionListener kafkaListener = applicationContext.getBean(KafkaSessionListener.class);
+                    KafkaNotifySessionListener kafkaListener = applicationContext.getBean(KafkaNotifySessionListener.class);
                     kafkaListener.init(config.getTopic());
 
                     listeners.add(kafkaListener);
                 } else if ("REDIS".equalsIgnoreCase(config.getType())) {
-                    RedisSessionListener redisListener = applicationContext.getBean(RedisSessionListener.class);
+                    RedisNotifySessionListener redisListener = applicationContext.getBean(RedisNotifySessionListener.class);
                     redisListener.init(config.getTopic());
 
                     listeners.add(redisListener);

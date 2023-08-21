@@ -53,6 +53,7 @@ public class TcpSession {
         this.channel = channel;
         this.tcpServer = tcpSessionManage;
         this.sessionListeners.add(tcpSessionManage);
+        this.sessionListeners.addAll(tcpSessionManage.getSessionListeners());
 
         this.sessionStatus = SessionStatus.CONNECTED;
         this.channelId = this.channel.id().asLongText();
@@ -66,6 +67,7 @@ public class TcpSession {
     public void connect() {
         log.info("连接建立,建立时间：" + DateTimeUtils.outEpochMilli(createTime));
         this.sessionStatus = SessionStatus.CONNECTED;
+
         sessionListeners.stream().forEach(x -> x.onConnect(this));
     }
 
@@ -79,6 +81,7 @@ public class TcpSession {
     public void login() {
         log.info("登陆");
         this.sessionStatus = SessionStatus.LOGIN;
+
         sessionListeners.stream().forEach(x -> x.online(this));
     }
 

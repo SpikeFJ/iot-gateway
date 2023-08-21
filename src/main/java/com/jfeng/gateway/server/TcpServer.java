@@ -188,7 +188,6 @@ public class TcpServer implements Server, SessionListener {
         bossGroup.shutdownGracefully();
     }
 
-
     private boolean timeOut(long time, int threshold) {
         return (System.currentTimeMillis() - time) > threshold;
     }
@@ -196,7 +195,6 @@ public class TcpServer implements Server, SessionListener {
     public boolean contains(String identifyNo) {
         return onLines.containsKey(identifyNo);
     }
-
 
     private volatile boolean isRunning = true;
     private int loginTimeout;//登陆超时
@@ -228,44 +226,24 @@ public class TcpServer implements Server, SessionListener {
         }
         totalConnectNum.getAndIncrement();
         connected.putIfAbsent(channelId, tcpSession);
-
-        tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListeners) {
-                listener.onConnect(tcpSession);
-            }
-        });
     }
 
     @Override
     public void onReceive(TcpSession tcpSession, byte[] data) {
         totalReceiveBytes.getAndIncrement();
         totalReceivePackets.getAndAdd(data.length);
-        tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListeners) {
-                listener.onReceive(tcpSession, data);
-            }
-        });
     }
 
 
     @Override
     public void onReceiveComplete(TcpSession tcpSession, byte[] data) {
-        tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListeners) {
-                listener.onReceiveComplete(tcpSession, data);
-            }
-        });
+
     }
 
     @Override
     public void onSend(TcpSession tcpSession, byte[] data) {
         totalSendPackets.getAndIncrement();
         totalSendBytes.getAndAdd(data.length);
-        tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListeners) {
-                listener.onSend(tcpSession, data);
-            }
-        });
     }
 
     @Override
@@ -273,26 +251,20 @@ public class TcpServer implements Server, SessionListener {
         totalCloseNum.getAndIncrement();
 
         String packetId = tcpSession.getPacketId();
-
         //未登录连接
         if (StringUtils.isEmpty(packetId)) {
             TcpSession removed = connected.remove(tcpSession.getLocalAddress());
             if (removed != null) {
-                Offline(tcpSession, reason);
+                Offline(removed, reason);
             }
         }
         //已登录连接
         else {
             TcpSession removed = onLines.remove(packetId);
             if (removed != null) {
-                Offline(tcpSession, reason);
+                Offline(removed, reason);
             }
         }
-        tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListeners) {
-                listener.onDisConnect(tcpSession, reason);
-            }
-        });
     }
 
     @Override
@@ -310,72 +282,13 @@ public class TcpServer implements Server, SessionListener {
             this.onLinesSpare.get(packetId).add(tcpSession);
         }
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, 1));
-        tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListeners) {
-                listener.online(tcpSession);
-            }
-        });
     }
 
     @Override
     public void Offline(TcpSession tcpSession, String message) {
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, 0));
-        tcpSession.getChannel().eventLoop().execute(() -> {
-            for (SessionListener listener : sessionListeners) {
-                listener.Offline(tcpSession, message);
-            }
-        });
     }
 
-    /**
-     * 保存单个连接信息
-     *
-     * @param channel
-     */
-    private void saveSingleChannel(TcpSession channel) {
-        if (channel == null) {
-            log.warn("连接已关闭");
-            channel.close("检测到连接关闭");
-            return;
-        }
-        if (channel.getSessionStatus() == SessionStatus.CONNECTED) {
-            String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":connect:" + channel.getRemoteAddress();
-
-            Map<String, String> hashValue = new HashMap<>();
-            hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(channel.getCreateTime()));
-            hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-
-            redisUtils.putAll(onlineKey, hashValue);
-        } else if (channel.getSessionStatus() == SessionStatus.LOGIN) {
-            String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":online:" + channel.getPacketId();
-            String onlineLocationKey = Constant.ONLINE_MAPPING + channel.getPacketId();
-
-            Map<String, String> hashValue = new HashMap<>();
-            hashValue.put(Constant.ONLINE_INFO_REMOTE_ADDRESS, channel.getRemoteAddress());
-
-            hashValue.put(Constant.ONLINE_INFO_PACKET_ID, channel.getPacketId());
-            hashValue.put(Constant.ONLINE_INFO_ID, channel.getId());
-            hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(channel.getCreateTime()));
-
-            hashValue.put(Constant.ONLINE_INFO_RECEIVE_PACKETS, String.valueOf(channel.getReceivedPackets()));
-            hashValue.put(Constant.ONLINE_INFO_RECEIVE_BYTES, String.valueOf(channel.getReceivedBytes()));
-            hashValue.put(Constant.ONLINE_INFO_LAST_RECEIVE_TIME, DateTimeUtils2.outString(channel.getLastReadTime()));
-
-            hashValue.put(Constant.ONLINE_INFO_SEND_PACKETS, String.valueOf(channel.getSendPackets()));
-            hashValue.put(Constant.ONLINE_INFO_SEND_BYTES, String.valueOf(channel.getSendBytes()));
-            hashValue.put(Constant.ONLINE_INFO_LAST_SEND_TIME, DateTimeUtils2.outString(channel.getLastWriteTime()));
-
-            hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-
-            redisUtils.putAll(onlineKey, hashValue);
-            redisUtils.expire(onlineKey, 5, TimeUnit.MINUTES);
-            //3. 维护设备和所属机器的关系
-            Map<String, String> mapping = new HashMap<>();
-            mapping.put(Constant.MACHINE, channel.getLocalAddress());
-            mapping.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-            redisUtils.putAll(onlineLocationKey, mapping);
-        }
-    }
 
     /**
      * 连接状态切换通知

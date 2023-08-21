@@ -5,22 +5,22 @@ import com.jfeng.gateway.message.DeviceMessage;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.JsonUtils;
+import com.jfeng.gateway.util.RedisUtils;
 import io.netty.buffer.ByteBufUtil;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.util.Map;
 
 /**
- * kafka会话监听器，接收到事件后写入kafka对应的主题中
+ * Redis会话监听器，接收到事件后通过Redis的PubSub机制通知订阅者
  */
 @Component
 @Setter
 @Slf4j
-public class KafkaSessionListener implements SessionListener {
+public class RedisNotifySessionListener implements SessionListener {
     private final String ROOT_TOPIC = Constant.SYSTEM_PREFIX + "hex_data";
     private final String CONNECT = "connect";
     private final String SEND = "send";
@@ -30,7 +30,6 @@ public class KafkaSessionListener implements SessionListener {
 
     private final String ONLINE = "ONLINE";
     private final String OFFLINE = "OFFLINE";
-
     private Map<String, String> topics;
 
     public void init(Map<String, String> topics) {
@@ -38,17 +37,15 @@ public class KafkaSessionListener implements SessionListener {
         this.topics = topics;
     }
 
-
     @Resource
-    private KafkaTemplate kafkaTemplate;
+    private RedisUtils redisUtils;
 
     @Override
     public void onConnect(TcpSession tcpSession) {
         String topic = topics.getOrDefault(CONNECT, "ROOT_TOPIC");
-
         DeviceMessage deviceMessage = DeviceMessage.createConnect(tcpSession.getPacketId(), tcpSession.getLocalAddress());
 
-        kafkaTemplate.send(topic, tcpSession.getPacketId(), JsonUtils.serialize(deviceMessage));
+        redisUtils.pub(topic, JsonUtils.serialize(deviceMessage));
     }
 
     @Override
@@ -61,7 +58,7 @@ public class KafkaSessionListener implements SessionListener {
         String topic = topics.getOrDefault(RECEIVE_COMPLETE, "ROOT_TOPIC");
         DeviceMessage deviceMessage = DeviceMessage.createReceiveComplete(tcpSession.getPacketId(), ByteBufUtil.hexDump(data), tcpSession.getLocalAddress());
 
-        kafkaTemplate.send(topic, tcpSession.getPacketId(), JsonUtils.serialize(deviceMessage));
+        redisUtils.pub(topic, JsonUtils.serialize(deviceMessage));
     }
 
     @Override
@@ -69,7 +66,7 @@ public class KafkaSessionListener implements SessionListener {
         String topic = topics.getOrDefault(SEND, "ROOT_TOPIC");
         DeviceMessage deviceMessage = DeviceMessage.createSend(tcpSession.getPacketId(), ByteBufUtil.hexDump(data), tcpSession.getLocalAddress());
 
-        kafkaTemplate.send(topic, tcpSession.getPacketId(), JsonUtils.serialize(deviceMessage));
+        redisUtils.pub(topic, JsonUtils.serialize(deviceMessage));
     }
 
     @Override
@@ -77,7 +74,7 @@ public class KafkaSessionListener implements SessionListener {
         String topic = topics.getOrDefault(CLOSE, "ROOT_TOPIC");
         DeviceMessage deviceMessage = DeviceMessage.createDisConnect(tcpSession.getPacketId(), tcpSession.getLocalAddress());
 
-        kafkaTemplate.send(topic, tcpSession.getPacketId(), JsonUtils.serialize(deviceMessage));
+        redisUtils.pub(topic, JsonUtils.serialize(deviceMessage));
     }
 
     @Override
@@ -85,15 +82,14 @@ public class KafkaSessionListener implements SessionListener {
         String topic = topics.getOrDefault(ONLINE, "ROOT_TOPIC");
         DeviceMessage deviceMessage = DeviceMessage.createOnline(tcpSession.getPacketId(), tcpSession.getLocalAddress());
 
-        kafkaTemplate.send(topic, tcpSession.getPacketId(), JsonUtils.serialize(deviceMessage));
+        redisUtils.pub(topic, JsonUtils.serialize(deviceMessage));
     }
 
     @Override
-    public void Offline(TcpSession tcpSession, String reason) {
+    public void Offline(TcpSession tcpSession, String message) {
         String topic = topics.getOrDefault(OFFLINE, "ROOT_TOPIC");
-        DeviceMessage deviceMessage = DeviceMessage.createOnline(tcpSession.getPacketId(), tcpSession.getLocalAddress());
+        DeviceMessage deviceMessage = DeviceMessage.createOffline(tcpSession.getPacketId(), tcpSession.getLocalAddress());
 
-        kafkaTemplate.send(topic, tcpSession.getPacketId(), JsonUtils.serialize(deviceMessage));
+        redisUtils.pub(topic, JsonUtils.serialize(deviceMessage));
     }
 }
-

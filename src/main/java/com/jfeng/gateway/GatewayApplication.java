@@ -39,6 +39,7 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
             tcpServer.setRedisUtils(redisUtils);
 
             tcpServer.init(null);
+            tcpServer.start();
         }
     }
 
