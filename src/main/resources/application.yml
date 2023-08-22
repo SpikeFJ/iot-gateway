@@ -28,7 +28,9 @@ gateway:
         receive: "receive",
         clos: "close",
       }
-  dispatch-type: kafka # 解析数据分发策略，默认spring内部通知
+  dispatch:
+    type: kafka # 解析数据分发策略，默认spring内部通知
+    topic: dispatch-topic # 解析数据分发策略，默认spring内部通知
 
   parameter: {
     protocol: abc, # 对应的解析协议，第一个handler应该是分包handler

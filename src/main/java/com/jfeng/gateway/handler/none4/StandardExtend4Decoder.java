@@ -1,10 +1,9 @@
 package com.jfeng.gateway.handler.none4;
 
-import com.jfeng.gateway.session.DispatchData;
-import com.jfeng.gateway.session.SessionStatus;
-import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.protocol.StandardProtocol4;
+import com.jfeng.gateway.session.SessionStatus;
+import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.TransactionIdUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -59,7 +58,7 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
                 return protocol4;
             }
 
-            session.getTcpServer().dispatch(session.getPacketId(), new DispatchData("", ByteBufUtil.hexDump(byteBuf)));
+            session.getTcpServer().dispatch(session.getPacketId(),  ByteBufUtil.hexDump(byteBuf));
 
         } catch (Exception e) {
             session.close("decode处理异常:" + e.getMessage());

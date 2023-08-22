@@ -4,6 +4,7 @@ import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
 import com.jfeng.gateway.handler.none4.*;
 import com.jfeng.gateway.message.CommandReq;
+import com.jfeng.gateway.message.DispatchMessage;
 import com.jfeng.gateway.session.*;
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.DateTimeUtils2;
@@ -45,6 +46,8 @@ public class TcpServer implements Server, SessionListener {
 
     RedisUtils redisUtils;
     String localAddress;
+    //TODO 协议code和handler处理器之间的联系及约束
+    String protocol;
 
     @Override
     public void init(Map<String, String> parameters) {
@@ -297,10 +300,11 @@ public class TcpServer implements Server, SessionListener {
      * 数据分发
      *
      * @param packetId
-     * @param data
+     * @param hexData
      */
-    public void dispatch(String packetId, DispatchData data) {
-        dispatcher.sendNext(packetId, data);
+    public void dispatch(String packetId, String hexData) {
+        DispatchMessage dispatchMessage = new DispatchMessage(protocol, hexData, localAddress);
+        dispatcher.sendNext(packetId, dispatchMessage);
     }
 
     /**

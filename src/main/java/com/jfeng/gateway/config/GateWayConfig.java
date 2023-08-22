@@ -29,15 +29,14 @@ public class GateWayConfig implements ApplicationContextAware {
     private String accessType;//tcp udp mqtt
     private boolean enable = false;
     private int port;
+    private String protocol;
+
     private List<NotifyConfig> notification;
-
-    @Value("${dispatchType:spring}")
+    @Value("${dispatch.type:spring}")
     private String dispatchType;
-
     private Map<String, String> parameter;
 
     private ApplicationContext applicationContext;
-
     @Bean
     public List<SessionListener> sessionListener() {
         List<SessionListener> listeners = new ArrayList<>();

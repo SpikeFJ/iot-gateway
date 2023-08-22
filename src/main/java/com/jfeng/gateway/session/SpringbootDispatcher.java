@@ -1,5 +1,6 @@
 package com.jfeng.gateway.session;
 
+import com.jfeng.gateway.message.DispatchMessage;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -13,7 +14,7 @@ public class SpringbootDispatcher implements Dispatcher, ApplicationContextAware
     private ApplicationContext applicationContext;
 
     @Override
-    public void sendNext(String packageId, DispatchData data) {
+    public void sendNext(String packageId, DispatchMessage data) {
         applicationContext.publishEvent(data);
     }
 

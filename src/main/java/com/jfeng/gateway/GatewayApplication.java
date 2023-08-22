@@ -40,11 +40,12 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
             TcpServer tcpServer = new TcpServer();
             tcpServer.setSessionListeners(sessionListener);
             tcpServer.setRedisUtils(redisUtils);
+            tcpServer.setDispatcher(dispatcher);
+            tcpServer.setProtocol(config.getProtocol());
             tcpServer.init(null);
             tcpServer.start();
         }
     }
-
 
     private static ApplicationContext application;
 

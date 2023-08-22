@@ -3,40 +3,43 @@ package com.jfeng.gateway.message;
 import lombok.Getter;
 
 /**
- * 消息类型
+ * 事件消息
  */
 @Getter
 public enum MessageType {
     /**
      * 设备连接
      */
-    DEVICE_CONNECT(100),
+    EVENT_CONNECT(100),
     /**
      * 设备接收到数据
      */
-    DEVICE_RECEIVE(110),
+    EVENT_RECEIVE(110),
     /**
      * 设备接收到数据
      */
-    DEVICE_RECEIVE_COMPLETE(120),
+    EVENT_RECEIVE_COMPLETE(120),
     /**
      * 设备发送了数据
      */
-    DEVICE_SEND(130),
+    EVENT_SEND(130),
     /**
      * 设备发送了数据
      */
-    DEVICE_DISCONNECT(140),
+    EVENT_DISCONNECT(140),
 
     /**
      * 设备上线
      */
-    DEVICE_ONLINE(200),
+    EVENT_ONLINE(200),
     /**
      * 设备下线
      */
-    DEVICE_OFFLINE(210),
+    EVENT_OFFLINE(210),
 
+
+    DISPATCH_DATA(300),
+    DISPATCH_CMD_RESP(310),
 
     /**
      * 设备连接历史明细

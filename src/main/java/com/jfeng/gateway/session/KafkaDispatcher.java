@@ -1,6 +1,8 @@
 package com.jfeng.gateway.session;
 
+import com.jfeng.gateway.message.DispatchMessage;
 import com.jfeng.gateway.util.JsonUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -8,7 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * springboot处理接收数据
+ * kafka处理分发数据
  */
 @Component
 @ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
@@ -16,8 +18,11 @@ public class KafkaDispatcher implements Dispatcher {
     @Resource
     private KafkaTemplate kafkaTemplate;
 
+    @Value("${dispatch.topic}")
+    private String dispatchTopic;
+
     @Override
-    public void sendNext(String packageId, DispatchData data) {
-        kafkaTemplate.send("", packageId, JsonUtils.serialize(data));
+    public void sendNext(String packageId, DispatchMessage data) {
+        kafkaTemplate.send(dispatchTopic, packageId, JsonUtils.serialize(data));
     }
 }
