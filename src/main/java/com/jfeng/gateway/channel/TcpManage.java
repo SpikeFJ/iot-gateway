@@ -12,10 +12,11 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -45,37 +46,12 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
     private TcpManage(String localAddress) {
         this.localAddress = localAddress;
         init();
-
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("连接明细")).submit(() -> {
-            while (isRunning) {
-                try {
-                    //TODO 维护历史连接明细
-                    ConnectDetail connectDetail = connectDetails.take();
-
-                } catch (Exception e) {
-                    log.warn("在线列表存储异常：", e);
-                }
-            }
-        });
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("设备在线")).submit(() -> {
             while (isRunning) {
                 try {
                     StateChangeEvent event = stateChangeEvent.take();
                     TcpChannel tcpChannel = event.session;
-
-                    String onlineKey = "iot:machine:" + tcpChannel.getLocalAddress() + ":online:" + tcpChannel.getPacketId();
                     String mappingKey = Constant.ONLINE_MAPPING + tcpChannel.getPacketId();
-
-                    Map<String, String> oldOnlineInfo;
-                    //维护上一次因为异常未保存的历史连接信息
-                    if (redisUtils.hasKey(onlineKey) && ((oldOnlineInfo = redisUtils.entries(onlineKey)) != null)) {
-                        LocalDateTime createTime = DateTimeUtils2.parse(oldOnlineInfo.get(Constant.ONLINE_INFO_CREATE_TIME), "yyyy-MM-dd HH:mm:ss");
-                        LocalDateTime endTime = event.state == 1 ? DateTimeUtils2.parse(oldOnlineInfo.get(Constant.ONLINE_INFO_LAST_REFRESH_TIME), "yyyy-MM-dd HH:mm:ss") : LocalDateTime.now();
-                        long totalMill = Duration.between(endTime, createTime).getSeconds();
-
-                        oldOnlineInfo.put(Constant.ONLINE_INFO_TOTAL_MILL, String.valueOf(totalMill));
-                        connectDetails.offer(new ConnectDetail(oldOnlineInfo));
-                    }
 
                     if (event.state == 1) {
                         Map<String, String> mapping = new HashMap<>();
@@ -200,7 +176,7 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
     private volatile boolean isRunning = true;
     private int loginTimeout;//登陆超时
     private int heartTimeout;//心跳超时
-    private int timeoutCheckInterval;//检测周期
+    private int timeoutCheckInterval = 3000;//检测周期
     private int checkPeriod;//检测周期
 
     private boolean allowMultiSocketPerDevice = false;//是否需要单设备多连接，如双卡设备
@@ -228,9 +204,6 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
         totalConnectNum.getAndIncrement();
         connected.putIfAbsent(channelId, tcpChannel);
 
-        tcpChannel.getChannel().eventLoop().scheduleAtFixedRate(() -> {
-            saveSingleChannel(tcpChannel);
-        }, 0, 10, TimeUnit.SECONDS);
     }
 
     @Override
@@ -242,18 +215,14 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
 
     @Override
     public void onReceiveComplete(TcpChannel tcpChannel, byte[] data) {
-//        tcpChannel.getChannel().eventLoop().execute(() -> {
-//            //写入到kafka
-//        });
+
     }
 
     @Override
     public void onSend(TcpChannel tcpChannel, byte[] data) {
         totalSendPackets.getAndIncrement();
         totalSendBytes.getAndAdd(data.length);
-//        tcpChannel.getChannel().eventLoop().execute(() -> {
-//            //写入到kafka
-//        });
+
     }
 
     @Override
@@ -297,67 +266,11 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
             this.onLinesSpare.get(packetId).add(tcpChannel);
         }
         stateChangeEvent.offer(new StateChangeEvent(tcpChannel, 1));
-//        tcpChannel.getChannel().eventLoop().execute(() -> {
-//            //写入到kafka
-//        });
     }
 
     @Override
     public void Offline(TcpChannel tcpChannel, String message) {
         stateChangeEvent.offer(new StateChangeEvent(tcpChannel, 0));
-//        tcpChannel.getChannel().eventLoop().execute(() -> {
-//            //写入到kafka
-//        });
-    }
-
-    /**
-     * 保存单个连接信息
-     *
-     * @param channel
-     */
-    private void saveSingleChannel(TcpChannel channel) {
-        if (channel == null) {
-            log.warn("连接已关闭");
-            channel.close("检测到连接关闭");
-            return;
-        }
-        if (channel.getChannelStatus() == ChannelStatus.CONNECTED) {
-            String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":connect:" + channel.getRemoteAddress();
-
-            Map<String, String> hashValue = new HashMap<>();
-            hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(channel.getCreateTime()));
-            hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-
-            redisUtils.putAll(onlineKey, hashValue);
-        } else if (channel.getChannelStatus() == ChannelStatus.LOGIN) {
-            String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":online:" + channel.getPacketId();
-            String onlineLocationKey = Constant.ONLINE_MAPPING + channel.getPacketId();
-
-            Map<String, String> hashValue = new HashMap<>();
-            hashValue.put(Constant.ONLINE_INFO_REMOTE_ADDRESS, channel.getRemoteAddress());
-
-            hashValue.put(Constant.ONLINE_INFO_PACKET_ID, channel.getPacketId());
-            hashValue.put(Constant.ONLINE_INFO_ID, channel.getId());
-            hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(channel.getCreateTime()));
-
-            hashValue.put(Constant.ONLINE_INFO_RECEIVE_PACKETS, String.valueOf(channel.getReceivedPackets()));
-            hashValue.put(Constant.ONLINE_INFO_RECEIVE_BYTES, String.valueOf(channel.getReceivedBytes()));
-            hashValue.put(Constant.ONLINE_INFO_LAST_RECEIVE_TIME, DateTimeUtils2.outString(channel.getLastReadTime()));
-
-            hashValue.put(Constant.ONLINE_INFO_SEND_PACKETS, String.valueOf(channel.getSendPackets()));
-            hashValue.put(Constant.ONLINE_INFO_SEND_BYTES, String.valueOf(channel.getSendBytes()));
-            hashValue.put(Constant.ONLINE_INFO_LAST_SEND_TIME, DateTimeUtils2.outString(channel.getLastWriteTime()));
-
-            hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-
-            redisUtils.putAll(onlineKey, hashValue);
-            redisUtils.expire(onlineKey, 5, TimeUnit.MINUTES);
-            //3. 维护设备和所属机器的关系
-            Map<String, String> mapping = new HashMap<>();
-            mapping.put(Constant.MACHINE, channel.getLocalAddress());
-            mapping.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-            redisUtils.putAll(onlineLocationKey, mapping);
-        }
     }
 
     /**

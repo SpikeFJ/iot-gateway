@@ -16,29 +16,3 @@ gateway:
       login_timeout: 0, # 登陆超时，单位:秒
       heart_timeout: 0 # 心跳超时，单位:秒
     }
-#  udp:
-#    enable: true
-#    port: 31000
-#    parameter: {
-#      protocol: abc # udp不需要分包handler,但是可能需要其他控制类handler
-#      login_timeout: 60 # 登陆超时，单位:秒
-#      heart_timeout: 600 # 心跳超时，单位:秒
-#    }
-#  http:
-#    enable: true
-#    port: ${server.port}
-#    parameter: {
-#
-#    }
-#  mqtt:
-#    enable: true
-#    port: 32000
-#    parameter: {
-#
-#    }
-#  websocket:
-#    enable: true
-#    port: 33000
-#    parameter: {
-#
-#    }

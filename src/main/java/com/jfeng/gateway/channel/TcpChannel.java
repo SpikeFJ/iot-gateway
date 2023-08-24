@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.jfeng.gateway.handler.none4.EventStatisticsHandler.CLIENT_CHANNEL_ATTRIBUTE_KEY;
+import static com.jfeng.gateway.handler.none4.ModbusHandler.CLIENT_CHANNEL_ATTRIBUTE_KEY;
 
 /**
  * Tcp通道连接
@@ -70,7 +70,7 @@ public class TcpChannel {
         channelListeners.stream().forEach(x -> x.onConnect(this));
     }
 
-    public void checkDupdicate(String packetId) {
+    public void checkDuplicate(String packetId) {
         if (this.tcpManage.contains(packetId)) {
             TcpChannel old = this.tcpManage.getOnLines().get(packetId);
             old.close("重复登录");

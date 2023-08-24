@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.InetSocketAddress;
 import java.util.List;
 
-import static com.jfeng.gateway.handler.none4.EventStatisticsHandler.CLIENT_CHANNEL_ATTRIBUTE_KEY;
+import static com.jfeng.gateway.handler.none4.ModbusHandler.CLIENT_CHANNEL_ATTRIBUTE_KEY;
 
 /**
  * Ip筛选

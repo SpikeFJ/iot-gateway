@@ -1,6 +1,7 @@
 package com.jfeng.gateway.comm;
 
 import com.jfeng.gateway.util.Crc16Utils;
+import com.jfeng.gateway.util.DateTimeUtils2;
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,6 +12,8 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -26,8 +29,7 @@ public class Modbus {
     private String unit;
 
     private volatile int rspCode = -1;//默认-1 0:失败 1：成功
-    private String result;
-    private String exception;
+
     private String code;
 
     public void send(ByteBuf out) {
@@ -44,12 +46,19 @@ public class Modbus {
     }
 
     public ModbusResp receive(ByteBuf in) {
+        Map<String, String> result = new HashMap<>();
+        result.put("address", String.valueOf(address));
+        result.put("registerAddress", String.valueOf(registerAddress));
+        result.put("time", DateTimeUtils2.outNowWithMill());
+        result.put("code", code);
+        result.put("unit", unit);
+
         if (in.readByte() != address) {
-            return ModbusResp.fail(5, "不一致的从站地址：" + address);
+            return ModbusResp.fail(5, "不一致的从站地址：" + address, result);
         }
         byte functionCode = in.readByte();
         if (functionCode == 0x83) {
-            return ModbusResp.fail(in.readByte(), "异常码：" + in.readByte());
+            return ModbusResp.fail(in.readByte(), "异常码：" + in.readByte(), result);
         }
         int byteNum = in.readByte();
         short i = in.readShort();
@@ -62,18 +71,19 @@ public class Modbus {
         if (dataType == 0) {
             Integer value = parser.parseExpression(expression.replace("x", "#x")).getValue(context, Integer.class);
             rspCode = 1;
-            result = value.toString();
+            result.put("value", value.toString());
         } else if (dataType == 1 || dataType == 2) {
             Double value = parser.parseExpression(expression.replace("x", "#x")).getValue(context, Double.class);
 
             BigDecimal valueWrap = BigDecimal.valueOf(value);
             valueWrap.setScale(decimalLength, RoundingMode.HALF_DOWN);
             rspCode = 1;
-            result = valueWrap.toPlainString();
+
+            result.put("value", valueWrap.toPlainString());
         } else if (dataType == 3) {
 
         }
 
-        return ModbusResp.success(code + ":" + result + " " + unit);
+        return ModbusResp.success(result);
     }
 }

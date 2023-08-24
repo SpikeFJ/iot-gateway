@@ -1,5 +1,6 @@
 package com.jfeng.gateway.comm;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,6 +32,7 @@ public class CollectionSetting {
     private List<SlaveSetting> slaveSettings = new ArrayList<>();
 
 
+    @JsonIgnore
     public List<Modbus> getModbusList() {
         List<Modbus> modbus = new ArrayList<>();
         for (SlaveSetting slaveSetting : slaveSettings) {

@@ -16,10 +16,6 @@ import java.util.Map;
 @Setter
 public class GateWayConfig {
     public ConfigItem tcp;
-    public ConfigItem udp;
-    public ConfigItem http;
-    public ConfigItem mqtt;
-    public ConfigItem websocket;
 
     @Getter
     @Setter

@@ -1,16 +1,22 @@
 package com.jfeng.gateway.comm;
 
+import com.jfeng.gateway.util.RedisUtils;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 
 @Getter
 @Setter
-public class Instance {
-
+@Component
+public class DeviceInfo {
     public static Map<String, CollectionSetting> settings = new HashMap<>();
+
+    @Resource
+    RedisUtils redisUtils;
 
     static {
         CollectionSetting collectionSetting = new CollectionSetting();
@@ -44,8 +50,10 @@ public class Instance {
         slaveSetting.getRegisterSettings().add(registerSetting1);
         slaveSetting.getRegisterSettings().add(registerSetting2);
 
-        collectionSetting.getModbusList();
         settings.put("3296386058158484", collectionSetting);
+
+        //System.out.println(JsonUtils.serialize(collectionSetting));
+
 
     }
 }
