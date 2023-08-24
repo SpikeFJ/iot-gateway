@@ -2,10 +2,13 @@ package com.jfeng.gateway.server;
 
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
-import com.jfeng.gateway.handler.none4.*;
+import com.jfeng.gateway.dispatch.Dispatcher;
 import com.jfeng.gateway.message.CommandReq;
 import com.jfeng.gateway.message.DispatchMessage;
-import com.jfeng.gateway.session.*;
+import com.jfeng.gateway.protocol.none4.*;
+import com.jfeng.gateway.session.SessionListener;
+import com.jfeng.gateway.session.SessionStatus;
+import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.RedisUtils;
@@ -176,6 +179,7 @@ public class TcpServer implements Server, SessionListener {
                 pipeline.addLast(new StandardExtend4Decoder());
                 pipeline.addLast(new StandardProtocol4Encoder());
                 pipeline.addLast(new LoginHandler());
+
             }
         });
 
@@ -201,7 +205,7 @@ public class TcpServer implements Server, SessionListener {
     }
 
     public boolean contains(String identifyNo) {
-        return onLines.containsKey(identifyNo);
+        return onLines.containsKey(identifyNo) || onLinesSpare.containsKey(identifyNo);
     }
 
     private volatile boolean isRunning = true;
@@ -340,9 +344,5 @@ public class TcpServer implements Server, SessionListener {
         public ConnectDetail(Map<String, String> connectInfo) {
             this.connectInfo = connectInfo;
         }
-    }
-
-    class Sending {
-
     }
 }

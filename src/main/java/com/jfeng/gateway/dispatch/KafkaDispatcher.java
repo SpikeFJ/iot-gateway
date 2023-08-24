@@ -1,4 +1,4 @@
-package com.jfeng.gateway.session;
+package com.jfeng.gateway.dispatch;
 
 import com.jfeng.gateway.message.DispatchMessage;
 import com.jfeng.gateway.util.JsonUtils;
@@ -18,7 +18,7 @@ public class KafkaDispatcher implements Dispatcher {
     @Resource
     private KafkaTemplate kafkaTemplate;
 
-    @Value("${dispatch.topic}")
+    @Value("${dispatch.topic:dispatchDst}")
     private String dispatchTopic;
 
     @Override

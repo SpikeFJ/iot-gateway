@@ -1,4 +1,4 @@
-package com.jfeng.gateway.session;
+package com.jfeng.gateway.dispatch;
 
 import com.jfeng.gateway.message.DispatchMessage;
 import org.springframework.beans.BeansException;

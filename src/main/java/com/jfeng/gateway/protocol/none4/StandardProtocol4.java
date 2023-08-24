@@ -1,5 +1,7 @@
-package com.jfeng.gateway.protocol;
+package com.jfeng.gateway.protocol.none4;
 
+import com.jfeng.gateway.protocol.Protocol;
+import com.jfeng.gateway.protocol.ValidException;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ByteProcessor;
 import lombok.Getter;

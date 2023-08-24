@@ -2,7 +2,7 @@ package com.jfeng.gateway;
 
 import com.jfeng.gateway.config.GateWayConfig;
 import com.jfeng.gateway.server.TcpServer;
-import com.jfeng.gateway.session.Dispatcher;
+import com.jfeng.gateway.dispatch.Dispatcher;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.util.RedisUtils;
 import lombok.extern.slf4j.Slf4j;

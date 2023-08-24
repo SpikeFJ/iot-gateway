@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.SESSION_KEY;
+import static com.jfeng.gateway.protocol.none4.StandardExtend4Decoder.SESSION_KEY;
 
 /**
  * Tcp会话

@@ -1,15 +1,14 @@
-package com.jfeng.gateway.handler.none4;
+package com.jfeng.gateway.protocol.none4;
 
 
 import com.jfeng.gateway.session.SessionStatus;
 import com.jfeng.gateway.session.TcpSession;
-import com.jfeng.gateway.protocol.StandardProtocol4;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
-import static com.jfeng.gateway.handler.none4.StandardExtend4Decoder.SESSION_KEY;
+import static com.jfeng.gateway.protocol.none4.StandardExtend4Decoder.SESSION_KEY;
 
 /**
  * 登录处理

@@ -1,9 +1,7 @@
 package com.jfeng.gateway.config;
 
-import com.jfeng.gateway.session.Dispatcher;
-import com.jfeng.gateway.session.KafkaDispatcher;
+import com.jfeng.gateway.dispatch.*;
 import com.jfeng.gateway.session.SessionListener;
-import com.jfeng.gateway.session.SpringbootDispatcher;
 import com.jfeng.gateway.session.listener.KafkaNotifySessionListener;
 import com.jfeng.gateway.session.listener.RedisNotifySessionListener;
 import lombok.Data;
@@ -37,6 +35,7 @@ public class GateWayConfig implements ApplicationContextAware {
     private Map<String, String> parameter;
 
     private ApplicationContext applicationContext;
+
     @Bean
     public List<SessionListener> sessionListener() {
         List<SessionListener> listeners = new ArrayList<>();
@@ -63,6 +62,10 @@ public class GateWayConfig implements ApplicationContextAware {
         Dispatcher dispatcher = applicationContext.getBean(SpringbootDispatcher.class);
         if ("kafka".equalsIgnoreCase(dispatchType)) {
             dispatcher = applicationContext.getBean(KafkaDispatcher.class);
+        } else if ("http".equalsIgnoreCase(dispatchType)) {
+            dispatcher = applicationContext.getBean(HttpDispatcher.class);
+        } else if ("webhook".equalsIgnoreCase(dispatchType)) {
+            dispatcher = applicationContext.getBean(WebhookDispatcher.class);
         }
         return dispatcher;
     }

@@ -1,4 +1,4 @@
-package com.jfeng.gateway.handler.none4;
+package com.jfeng.gateway.protocol.none4;
 
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.server.TcpServer;

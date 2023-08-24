@@ -1,7 +1,6 @@
-package com.jfeng.gateway.handler.none4;
+package com.jfeng.gateway.protocol.none4;
 
 import com.jfeng.gateway.comm.Constant;
-import com.jfeng.gateway.protocol.StandardProtocol4;
 import com.jfeng.gateway.session.SessionStatus;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.TransactionIdUtils;
