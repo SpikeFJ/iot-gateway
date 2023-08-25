@@ -149,17 +149,16 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
         redisUtils = GatewayApplication.getObject(RedisUtils.class);
         kafkaTemplate = GatewayApplication.getObject(KafkaTemplate.class);
         GateWayConfig gateWayConfig = GatewayApplication.getObject(GateWayConfig.class);
-        GateWayConfig.ConfigItem item = gateWayConfig.getTcp();
-        if (item.getParameter().get("checkPeriod") != null) {
-            this.checkPeriod = Integer.parseInt(item.getParameter().get("checkPeriod"));
+        if (gateWayConfig.getParameter().get("checkPeriod") != null) {
+            this.checkPeriod = Integer.parseInt(gateWayConfig.getParameter().get("checkPeriod"));
         } else {
             this.checkPeriod = 10000;
         }
-        if (item.getParameter().get("loginTimeout") != null) {
-            this.loginTimeout = Integer.parseInt(item.getParameter().get("loginTimeout"));
+        if (gateWayConfig.getParameter().get("loginTimeout") != null) {
+            this.loginTimeout = Integer.parseInt(gateWayConfig.getParameter().get("loginTimeout"));
         }
-        if (item.getParameter().get("heartTimeout") != null) {
-            this.heartTimeout = Integer.parseInt(item.getParameter().get("heartTimeout"));
+        if (gateWayConfig.getParameter().get("heartTimeout") != null) {
+            this.heartTimeout = Integer.parseInt(gateWayConfig.getParameter().get("heartTimeout"));
         }
     }
 
@@ -222,7 +221,6 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
     public void onSend(TcpChannel tcpChannel, byte[] data) {
         totalSendPackets.getAndIncrement();
         totalSendBytes.getAndAdd(data.length);
-
     }
 
     @Override

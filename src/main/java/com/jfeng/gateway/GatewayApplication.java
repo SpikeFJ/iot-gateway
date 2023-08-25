@@ -1,6 +1,5 @@
 package com.jfeng.gateway;
 
-import com.jfeng.gateway.comm.DeviceInfo;
 import com.jfeng.gateway.config.GateWayConfig;
 import com.jfeng.gateway.handler.none4.IpFilterHandler;
 import com.jfeng.gateway.handler.none4.ModbusHandler;
@@ -29,8 +28,6 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
     @Resource
     public GateWayConfig config;
     @Resource
-    private DeviceInfo deviceInfo;
-    @Resource
     private RedisUtils redisUtils;
     @Resource
     KafkaTemplate kafkaTemplate;
@@ -41,12 +38,10 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
 
     @Override
     public void run(String... args) throws Exception {
-        if (config.tcp != null && config.tcp.isEnable()) {
-            startTcp(config.getTcp());
-        }
+        startTcp(config);
     }
 
-    private void startTcp(GateWayConfig.ConfigItem tcpItem) {
+    private void startTcp(GateWayConfig config) {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
@@ -56,12 +51,12 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
                 @Override
                 protected void initChannel(SocketChannel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
-                    pipeline.addLast(new IpFilterHandler(tcpItem.getBlackIpList(), tcpItem.getWhiteIpList()));
+                    pipeline.addLast(new IpFilterHandler(config.getBlackIpList(), config.getWhiteIpList()));
                     pipeline.addLast(new ModbusHandler(redisUtils, kafkaTemplate));
                 }
             });
 
-            int listenPort = tcpItem.getPort();
+            int listenPort = config.getPort();
             ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED);
             ChannelFuture future = serverBootstrap.bind(listenPort).sync();
             log.info("Tcp(Modbus)服务启动成功,端口: {}", listenPort);
