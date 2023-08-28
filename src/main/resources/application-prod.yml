@@ -1,1 +1,17 @@
-url: http://144.202.100.130/decode
+spring:
+  kafka:
+    bootstrap-servers:  192.168.40.105:9092,192.168.40.106:9092,192.168.40.107:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: access
+  redis:
+    cluster:
+      nodes:
+        - 192.168.40.57:6379
+        - 192.168.40.58:6380
+        - 192.168.40.59:6381
+        - 192.168.40.57:6389
+        - 192.168.40.58:6390
+        - 192.168.40.59:6391

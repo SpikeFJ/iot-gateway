@@ -77,7 +77,7 @@ public class ModbusHandler extends ChannelDuplexHandler {
                 if (sendingIndex < toSend.length) {
                     ModbusResp receive = toSend[sendingIndex].receive(byteBuf);
                     log.info("解析数据" + JsonUtils.serialize(receive.getData()));
-                    kafkaTemplate.send("abc", client.getPacketId(), JsonUtils.serialize(receive.getData()));
+                    kafkaTemplate.send("parse_out", client.getPacketId(), JsonUtils.serialize(receive.getData()));
 
                     if (sendingIndex + 1 != toSend.length) {
                         sendingIndex++;

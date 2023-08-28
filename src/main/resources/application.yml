@@ -1,14 +1,14 @@
 spring:
   profiles:
-    active: local
+    active: prod
 server:
-  port: 32000
+  port: 9999
   compression:
     enabled: true
     min-response-size: 512
 gateway:
   enable: true
-  port: 30000
+  port: 30003
   dstTopic: tcp_topic # 转发目的地
   parameter: {
     protocol: abc, # 对应的解析协议，第一个handler应该是分包handler
