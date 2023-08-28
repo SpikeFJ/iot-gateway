@@ -13,12 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 public class StandardProtocol4Encoder extends MessageToByteEncoder<StandardProtocol4> {
     @Override
     protected void encode(ChannelHandlerContext ctx, StandardProtocol4 protocol4, ByteBuf byteBuf) throws Exception {
-        if (protocol4 == null) throw new Exception("缺少协议对象");
-
-        protocol4.encode(byteBuf);
-        TcpSession client = ctx.channel().attr(StandardExtend4Decoder.SESSION_KEY).get();
-        if (client != null) {
-            client.send(byteBuf.array());
+        if (protocol4 != null) {
+            protocol4.encode(byteBuf);
+            TcpSession client = ctx.channel().attr(StandardExtend4Decoder.SESSION_KEY).get();
+            if (client != null) {
+                client.send(byteBuf.array());
+            }
         }
     }
 }

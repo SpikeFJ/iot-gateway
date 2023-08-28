@@ -46,7 +46,7 @@ public class StatisticsHandler extends ChannelDuplexHandler {
 
         ByteBuf byteBuf = (ByteBuf) msg;
         client.receive(ByteBufUtil.getBytes(byteBuf));
-        log.debug("接收数据(原始)：" + ByteBufUtil.hexDump(byteBuf));
+        log.debug("接收>>:" + ByteBufUtil.hexDump(byteBuf));
 
         ReferenceCountUtil.release(byteBuf);
         super.channelRead(ctx, msg);

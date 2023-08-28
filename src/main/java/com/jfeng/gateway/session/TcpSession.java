@@ -99,10 +99,16 @@ public class TcpSession {
     }
 
     public void send(byte[] send) {
+        send(send, false);
+    }
+
+    public void send(byte[] send, boolean writeAndFlush) {
         this.sendBytes += send.length;
         sendPackets += 1;
         this.lastWriteTime = ZonedDateTime.now().toInstant().toEpochMilli();
-
+        if (writeAndFlush) {
+            channel.writeAndFlush(send);
+        }
         sessionListeners.stream().forEach(x -> x.onSend(this, send));
     }
 

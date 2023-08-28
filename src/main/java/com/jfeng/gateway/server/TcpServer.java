@@ -14,6 +14,7 @@ import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.RedisUtils;
 import com.jfeng.gateway.util.StringUtils;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -204,8 +205,18 @@ public class TcpServer implements Server, SessionListener {
         return (System.currentTimeMillis() - time) > threshold;
     }
 
-    public boolean contains(String identifyNo) {
-        return onLines.containsKey(identifyNo) || onLinesSpare.containsKey(identifyNo);
+    public boolean contains(String packetId) {
+        return onLines.containsKey(packetId) || onLinesSpare.containsKey(packetId);
+    }
+
+    public TcpSession get(String packetId) {
+        if (onLines.containsKey(packetId)) {
+            return onLines.get(packetId);
+        }
+        if (onLinesSpare.containsKey(packetId)) {
+            return onLinesSpare.get(packetId).get(0);
+        }
+        return null;
     }
 
     private volatile boolean isRunning = true;
@@ -307,15 +318,22 @@ public class TcpServer implements Server, SessionListener {
      * @param hexData
      */
     public void dispatch(String packetId, String hexData) {
-        DispatchMessage dispatchMessage = new DispatchMessage(protocol, hexData, localAddress);
-        dispatcher.sendNext(packetId, dispatchMessage);
+        dispatcher.sendNext(packetId, new DispatchMessage(protocol, hexData, localAddress));
     }
 
     /**
-     * 需要将下发的请求数据外置存储，因为可能发送下行命令后掉线，在另一个机器上线。
+     * 发送数据至设备（需要将下发的请求数据外置存储，因为可能发送下行命令后掉线，在另一个机器上线。）
      */
-    public void sendCommand(CommandReq request) {
-
+    public void sendToDevice(CommandReq request) throws Exception {
+        if (this.contains(request.getDeviceId())) {
+            TcpSession session = this.get(request.getDeviceId());
+            session.send(ByteBufUtil.decodeHexDump(request.getData()),true);
+            //TODO 2.添加到已发送列表
+        } else if (request.isSendOnOffline()) {
+            //TODO 1. 添加到待发送列表
+        } else {
+            throw new Exception("设备[" + request.getDeviceId() + "]不在线。");
+        }
     }
 
     /**

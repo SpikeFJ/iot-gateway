@@ -53,8 +53,8 @@ public class CommandResp<T> {
 
     private static CommandResp resp(CommandRespCode code, CommandReq req, String msg) {
         CommandResp resp = new CommandResp();
-        resp.key = req.key;
-        resp.id = req.id;
+        resp.key = req.sendNo;
+        resp.id = req.deviceId;
         resp.code = code.getValue();
         if (StringUtils.isNotEmpty(msg)) {
             resp.message = msg;
