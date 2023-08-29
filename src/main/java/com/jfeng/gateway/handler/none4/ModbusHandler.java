@@ -5,15 +5,12 @@ import com.jfeng.gateway.channel.TcpChannel;
 import com.jfeng.gateway.channel.TcpManage;
 import com.jfeng.gateway.comm.CollectionSetting;
 import com.jfeng.gateway.comm.Constant;
-import com.jfeng.gateway.comm.Modbus;
-import com.jfeng.gateway.comm.ModbusResp;
 import com.jfeng.gateway.util.JsonUtils;
 import com.jfeng.gateway.util.RedisUtils;
 import com.jfeng.gateway.util.StringUtils;
 import com.jfeng.gateway.util.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -25,7 +22,6 @@ import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -35,10 +31,6 @@ import java.util.concurrent.TimeUnit;
 @Data
 public class ModbusHandler extends ChannelDuplexHandler {
     public static final AttributeKey<TcpChannel> CLIENT_CHANNEL_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
-    Sending[] toSend;
-    private byte[] heartCode;
-    private String heartCodeStr;
-    int sendingIndex;
     RedisUtils redisUtils;
     KafkaTemplate kafkaTemplate;
 
@@ -71,26 +63,7 @@ public class ModbusHandler extends ChannelDuplexHandler {
         if (client.getChannelStatus() == ChannelStatus.CONNECTED) {
             checkDtuCode(client, bytes);
         } else if (client.getChannelStatus() == ChannelStatus.LOGIN) {
-            if (Arrays.equals(this.heartCode, bytes)) {
-                log.info("心跳：" + heartCodeStr);
-            } else if (toSend != null) {
-                if (sendingIndex < toSend.length) {
-                    ModbusResp receive = toSend[sendingIndex].receive(byteBuf);
-                    log.info("解析数据" + JsonUtils.serialize(receive.getData()));
-                    kafkaTemplate.send("parse_out", client.getPacketId(), JsonUtils.serialize(receive.getData()));
-
-                    if (sendingIndex + 1 != toSend.length) {
-                        sendingIndex++;
-                        sendNext(ctx.channel(), Unpooled.buffer(8));
-                    }
-
-                } else if (sendingIndex == toSend.length) {
-                    log.info("本次发送结束");
-                    sendingIndex = 0;
-                }
-            } else {
-                log.info("未知数据");
-            }
+            client.receiveResp(byteBuf);
         }
 //        ReferenceCountUtil.release(byteBuf);
         super.channelRead(ctx, msg);
@@ -112,20 +85,12 @@ public class ModbusHandler extends ChannelDuplexHandler {
             log.warn("该设备采集参数配置错误");
             return;
         }
-        if (collectionSetting != null) {
-            this.heartCodeStr = collectionSetting.getHeartCode();
-            this.heartCode = StringUtils.isNotEmpty(collectionSetting.getHeartCode()) ? collectionSetting.getHeartCode().getBytes("ASCII") : null;
-            toSend = new Sending[collectionSetting.getModbusList().size()];
-            for (int i = 0; i < collectionSetting.getModbusList().size(); i++) {
-                toSend[i] = new Sending(collectionSetting.getModbusList().get(i));
-            }
 
-            Channel channel = tcpChannel.getChannel();
-            channel.eventLoop().scheduleAtFixedRate(() -> {
-                sendingIndex = 0;
-                sendNext(channel, Unpooled.buffer(8));
-            }, 1, collectionSetting.getConnectPeriod(), TimeUnit.SECONDS);
-        }
+        tcpChannel.initSetting(collectionSetting);
+        Channel channel = tcpChannel.getChannel();
+        channel.eventLoop().scheduleAtFixedRate(() -> {
+            tcpChannel.sendNext();
+        }, 1, collectionSetting.getConnectPeriod(), TimeUnit.SECONDS);
     }
 
     @Override
@@ -157,37 +122,5 @@ public class ModbusHandler extends ChannelDuplexHandler {
             client.close(cause.getMessage());
         }
         super.exceptionCaught(ctx, cause);
-    }
-
-
-    private void sendNext(Channel channel, ByteBuf buffer) {
-        buffer = Unpooled.buffer(8);
-        toSend[sendingIndex].send(buffer);
-        toSend[sendingIndex].sendTime = System.currentTimeMillis();
-        channel.writeAndFlush(buffer);
-    }
-
-    class Sending {
-        Sending(Modbus modbus) {
-            this.modbus = modbus;
-            sendTime = -1;
-        }
-
-
-        public void send(ByteBuf out) {
-            this.modbus.send(out);
-            this.sendTime = System.currentTimeMillis();
-        }
-
-        public ModbusResp receive(ByteBuf in) {
-            if (System.currentTimeMillis() - toSend[sendingIndex].sendTime > 3000) {
-                log.info("数据返回超时");
-            }
-            this.sendTime = -1;
-            return this.modbus.receive(in);
-        }
-
-        Modbus modbus;
-        long sendTime;
     }
 }

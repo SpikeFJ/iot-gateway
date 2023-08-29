@@ -1,8 +1,16 @@
 package com.jfeng.gateway.channel;
 
+import com.jfeng.gateway.comm.CollectionSetting;
 import com.jfeng.gateway.comm.Constant;
+import com.jfeng.gateway.comm.Modbus;
+import com.jfeng.gateway.comm.ModbusResp;
 import com.jfeng.gateway.util.DateTimeUtils;
+import com.jfeng.gateway.util.JsonUtils;
+import com.jfeng.gateway.util.StringUtils;
 import com.jfeng.gateway.util.Utils;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,10 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.jfeng.gateway.handler.none4.ModbusHandler.CLIENT_CHANNEL_ATTRIBUTE_KEY;
 
@@ -83,6 +88,52 @@ public class TcpChannel {
         onlineStateListeners.stream().forEach(x -> x.online(this));
     }
 
+    Sending[] toSend;
+    private byte[] heartCode;
+    private String heartCodeStr;
+    int sendingIndex;
+
+    public void initSetting(CollectionSetting collectionSetting) throws Exception {
+        if (collectionSetting != null) {
+            this.heartCodeStr = collectionSetting.getHeartCode();
+            this.heartCode = StringUtils.isNotEmpty(collectionSetting.getHeartCode()) ? collectionSetting.getHeartCode().getBytes("ASCII") : null;
+            toSend = new Sending[collectionSetting.getModbusList().size()];
+            for (int i = 0; i < collectionSetting.getModbusList().size(); i++) {
+                toSend[i] = new Sending(collectionSetting.getModbusList().get(i));
+            }
+            sendingIndex = 0;
+        }
+    }
+
+    public void receiveResp(ByteBuf byteBuf) {
+        if (Arrays.equals(this.heartCode, ByteBufUtil.getBytes(byteBuf))) {
+            log.info("心跳：" + heartCodeStr);
+        } else if (toSend != null) {
+            if (sendingIndex < toSend.length) {
+                ModbusResp receive = toSend[sendingIndex].receive(byteBuf);
+                log.info("解析数据" + JsonUtils.serialize(receive.getData()));
+                tcpManage.getKafkaTemplate().send("parse_out", packetId, JsonUtils.serialize(receive.getData()));
+
+                if (sendingIndex + 1 != toSend.length) {
+                    log.info("准备发送下一帧:" + sendingIndex + ",总数:" + toSend.length);
+                    sendingIndex++;
+                    sendNext();
+                }
+            } else if (sendingIndex == toSend.length) {
+                log.info("本次发送结束");
+                sendingIndex = 0;
+            }
+        } else {
+            log.info("未知数据");
+        }
+    }
+
+    public void sendNext() {
+        ByteBuf buffer = Unpooled.buffer(8);
+        toSend[sendingIndex].send(buffer);
+        toSend[sendingIndex].sendTime = System.currentTimeMillis();
+        channel.writeAndFlush(buffer);
+    }
 
     public void receive(byte[] receive) {
         this.receivedBytes += receive.length;
@@ -138,5 +189,30 @@ public class TcpChannel {
         }
 
         return s.substring(1);
+    }
+
+
+    class Sending {
+        Sending(Modbus modbus) {
+            this.modbus = modbus;
+            sendTime = -1;
+        }
+
+
+        public void send(ByteBuf out) {
+            this.modbus.send(out);
+            this.sendTime = System.currentTimeMillis();
+        }
+
+        public ModbusResp receive(ByteBuf in) {
+            if (System.currentTimeMillis() - toSend[sendingIndex].sendTime > 3000) {
+                log.info("数据返回超时");
+            }
+            this.sendTime = -1;
+            return this.modbus.receive(in);
+        }
+
+        Modbus modbus;
+        long sendTime;
     }
 }
