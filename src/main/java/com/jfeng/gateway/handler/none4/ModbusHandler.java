@@ -66,13 +66,13 @@ public class ModbusHandler extends ChannelDuplexHandler {
         byte[] bytes = ByteBufUtil.getBytes(byteBuf);
         client.receive(bytes);
 
-        log.debug("接收<<:" + ByteBufUtil.hexDump(byteBuf));
+        log.info("接收<<:" + ByteBufUtil.hexDump(byteBuf));
 
         if (client.getChannelStatus() == ChannelStatus.CONNECTED) {
             checkDtuCode(client, bytes);
         } else if (client.getChannelStatus() == ChannelStatus.LOGIN) {
             if (Arrays.equals(this.heartCode, bytes)) {
-                log.debug("心跳：" + heartCodeStr);
+                log.info("心跳：" + heartCodeStr);
             } else if (toSend != null) {
                 if (sendingIndex < toSend.length) {
                     ModbusResp receive = toSend[sendingIndex].receive(byteBuf);
@@ -102,7 +102,7 @@ public class ModbusHandler extends ChannelDuplexHandler {
         tcpChannel.login();
         log.info("dtu编号:" + dtuCode);
 
-        String strDeviceInfo = redisUtils.get("iot:deviceInfo:" + dtuCode);
+        String strDeviceInfo = redisUtils.get("dtu:device:" + dtuCode);
         if (StringUtils.isEmpty(strDeviceInfo)) {
             log.warn("该设备未设置相关采集参数");
             return;
