@@ -9,10 +9,7 @@ import com.jfeng.gateway.protocol.none4.*;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.SessionStatus;
 import com.jfeng.gateway.session.TcpSession;
-import com.jfeng.gateway.util.DateTimeUtils;
-import com.jfeng.gateway.util.DateTimeUtils2;
-import com.jfeng.gateway.util.RedisUtils;
-import com.jfeng.gateway.util.StringUtils;
+import com.jfeng.gateway.util.*;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.*;
@@ -27,10 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -52,6 +46,11 @@ public class TcpServer implements Server, SessionListener {
     String localAddress;
     //TODO 协议code和handler处理器之间的联系及约束
     String protocol;
+
+    private static final String TO_BE_SEND = "IOT:TO_BE_SEND";
+    private static final String TO_BE_SEND_REQ = "IOT:TO_BE_SEND:REQ:";
+    private static final String SENT = "IOT:SENT";
+    private static final String SENT_REQ = "IOT:SENT:REQ:";
 
     @Override
     public void init(Map<String, String> parameters) {
@@ -100,7 +99,7 @@ public class TcpServer implements Server, SessionListener {
                 }
             }
         });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("定时检测")).submit(() -> {
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("心跳超时检测")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
                     //1.移除所有已关闭连接、登录超时连接
@@ -167,7 +166,40 @@ public class TcpServer implements Server, SessionListener {
                 }
             }
         });
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("下行超时检测")).submit(() -> {
+            while (isRunning && !Thread.currentThread().isInterrupted()) {
+                try {
+                    //1. 待发送
+                    Set<String> toBeSendValue = redisUtils.rangeByScore(TO_BE_SEND, 0, System.currentTimeMillis());
+                    toBeSendValue.parallelStream().forEach(x -> {
+                        String[] value = x.split("_");
+                        String deviceId = value[0];
+                        String sendNo = value[1];
+
+                        if (this.contains(deviceId)) {
+                            //1. 在本机上线则发送
+                            TcpSession session = this.get(deviceId);
+                            CommandReq req = JsonUtils.deserialize(String.valueOf(redisUtils.get(TO_BE_SEND_REQ + deviceId, sendNo)), CommandReq.class);
+                            session.send(ByteBufUtil.decodeHexDump(req.getData()), true);
+                        } else {
+                            //2.不在本机，在其他机器
+                            //3.未上线
+                        }
+                    });
+                    //2. 已发送
+                } catch (Exception e) {
+                    log.warn("下行检测", e);
+                } finally {
+                    try {
+                        Thread.sleep(checkPeriod);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
     }
+
 
     @Override
     public void start() throws Exception {
@@ -321,20 +353,51 @@ public class TcpServer implements Server, SessionListener {
         dispatcher.sendNext(packetId, new DispatchMessage(protocol, hexData, localAddress));
     }
 
+
     /**
      * 发送数据至设备（需要将下发的请求数据外置存储，因为可能发送下行命令后掉线，在另一个机器上线。）
      */
     public void sendToDevice(CommandReq request) throws Exception {
         if (this.contains(request.getDeviceId())) {
             TcpSession session = this.get(request.getDeviceId());
-            session.send(ByteBufUtil.decodeHexDump(request.getData()),true);
-            //TODO 2.添加到已发送列表
+            session.send(ByteBufUtil.decodeHexDump(request.getData()), true);
+
+            sent(request);
         } else if (request.isSendOnOffline()) {
-            //TODO 1. 添加到待发送列表
+            toBeSend(request);
         } else {
-            throw new Exception("设备[" + request.getDeviceId() + "]不在线。");
+            log.warn("设备[" + request.getDeviceId() + "]不在线。");
+            //TODO 返回响应
         }
     }
+
+
+    /**
+     * 保存待发送队列
+     *
+     * @param toBeSendReq
+     */
+    private void toBeSend(CommandReq toBeSendReq) {
+        //1. 请求信息
+        redisUtils.put(toBeSendReq.getDeviceId(), toBeSendReq.getSendNo(), JsonUtils.serialize(toBeSendReq));
+        //2. 超时信息(默认1天)
+        long endTime = System.currentTimeMillis() + 60 * 1000 * 60 * 24;
+        redisUtils.add(TO_BE_SEND, toBeSendReq.getDeviceId() + "_" + toBeSendReq.getSendNo(), endTime);
+    }
+
+    /**
+     * 保存已发送队列
+     *
+     * @param toSentReq
+     */
+    private void sent(CommandReq toSentReq) {
+        //1. 请求信息
+        redisUtils.put(toSentReq.getDeviceId(), toSentReq.getSendNo(), JsonUtils.serialize(toSentReq));
+        //2. 超时信息
+        long endTime = System.currentTimeMillis() + toSentReq.getTimeout() * 1000;
+        redisUtils.add(SENT, toSentReq.getDeviceId() + "_" + toSentReq.getSendNo(), endTime);
+    }
+
 
     /**
      * 连接状态切换通知
