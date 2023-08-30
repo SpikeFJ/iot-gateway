@@ -48,4 +48,13 @@ public class SlaveSetting {
         }
         return modbusList;
     }
+
+    @Override
+    public String toString() {
+        return "SlaveSetting{" +
+                "name='" + name + '\'' +
+                ", address=" + address +
+                ", registerSettings=" + registerSettings +
+                '}';
+    }
 }

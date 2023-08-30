@@ -86,4 +86,20 @@ public class Modbus {
 
         return ModbusResp.success(result);
     }
+
+    @Override
+    public String toString() {
+        return "Modbus{" +
+                "address=" + address +
+                ", functionCode=" + functionCode +
+                ", registerAddress=" + registerAddress +
+                ", length=" + length +
+                ", expression='" + expression + '\'' +
+                ", dataType=" + dataType +
+                ", decimalLength=" + decimalLength +
+                ", unit='" + unit + '\'' +
+                ", rspCode=" + rspCode +
+                ", code='" + code + '\'' +
+                '}';
+    }
 }

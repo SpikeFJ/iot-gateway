@@ -40,4 +40,14 @@ public class CollectionSetting {
         }
         return modbus;
     }
+
+    @Override
+    public String toString() {
+        return "CollectionSetting{" +
+                "dtuCode='" + dtuCode + '\'' +
+                ", heartCode='" + heartCode + '\'' +
+                ", connectPeriod=" + connectPeriod +
+                ", slaveSettings=" + slaveSettings +
+                '}';
+    }
 }

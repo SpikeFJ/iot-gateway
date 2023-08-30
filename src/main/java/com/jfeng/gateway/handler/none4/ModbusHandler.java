@@ -65,7 +65,6 @@ public class ModbusHandler extends ChannelDuplexHandler {
         } else if (client.getChannelStatus() == ChannelStatus.LOGIN) {
             client.receiveResp(byteBuf);
         }
-//        ReferenceCountUtil.release(byteBuf);
         super.channelRead(ctx, msg);
     }
 
@@ -89,8 +88,9 @@ public class ModbusHandler extends ChannelDuplexHandler {
         tcpChannel.initSetting(collectionSetting);
         Channel channel = tcpChannel.getChannel();
         channel.eventLoop().scheduleAtFixedRate(() -> {
+            log.info("定时发送");
             tcpChannel.sendNext();
-        }, 1, collectionSetting.getConnectPeriod(), TimeUnit.SECONDS);
+        }, 10, collectionSetting.getConnectPeriod(), TimeUnit.SECONDS);
     }
 
     @Override

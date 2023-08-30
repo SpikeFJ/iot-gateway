@@ -101,8 +101,9 @@ public class TcpChannel {
             for (int i = 0; i < collectionSetting.getModbusList().size(); i++) {
                 toSend[i] = new Sending(collectionSetting.getModbusList().get(i));
             }
-            sendingIndex = 0;
         }
+
+        log.info("初始化配置：" + Arrays.toString(toSend));
     }
 
     public void receiveResp(ByteBuf byteBuf) {
@@ -111,15 +112,16 @@ public class TcpChannel {
         } else if (toSend != null) {
             if (sendingIndex < toSend.length) {
                 ModbusResp receive = toSend[sendingIndex].receive(byteBuf);
-                log.info("解析数据" + JsonUtils.serialize(receive.getData()));
-                tcpManage.getKafkaTemplate().send("parse_out", packetId, JsonUtils.serialize(receive.getData()));
+                log.info("当前帧:" + sendingIndex + ",总帧数:" + toSend.length + ",解析数据" + JsonUtils.serialize(receive.getData()));
 
-                if (sendingIndex + 1 != toSend.length) {
-                    log.info("准备发送下一帧:" + sendingIndex + ",总数:" + toSend.length);
-                    sendingIndex++;
-                    sendNext();
-                }
-            } else if (sendingIndex == toSend.length) {
+                tcpManage.getKafkaTemplate().send("parse_out_tahsensor", packetId, JsonUtils.serialize(receive.getData()));
+            }
+
+            if (sendingIndex + 1 < toSend.length) {
+                sendingIndex++;
+                log.info("准备发送下一帧:" + sendingIndex + ",总数:" + toSend.length);
+                sendNext();
+            } else {
                 log.info("本次发送结束");
                 sendingIndex = 0;
             }
@@ -193,7 +195,7 @@ public class TcpChannel {
 
 
     class Sending {
-        Sending(Modbus modbus) {
+        public Sending(Modbus modbus) {
             this.modbus = modbus;
             sendTime = -1;
         }
@@ -214,5 +216,10 @@ public class TcpChannel {
 
         Modbus modbus;
         long sendTime;
+
+        @Override
+        public String toString() {
+            return "Sending{" + "modbus=" + modbus + ", sendTime=" + sendTime + '}';
+        }
     }
 }
