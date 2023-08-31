@@ -20,6 +20,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import javax.annotation.Resource;
+import java.io.UnsupportedEncodingException;
 
 @SpringBootApplication
 @Slf4j
@@ -32,7 +33,15 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
     @Resource
     KafkaTemplate kafkaTemplate;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedEncodingException {
+//        byte[] a= new byte[]{0x36, 0x39, 0x36, 0x66, 0x37, 0x34, 0x32, 0x65, 0x36, 0x38, 0x36, 0x31, 0x36, 0x66, 0x36, 0x62, 0x37, 0x35, 0x36, 0x31, 0x36, 0x39, 0x32, 0x65, 0x36, 0x33, 0x36, 0x65};
+//        System.out.println(Arrays.toString(a));
+//        String ascii = new String(a,"ASCII");
+//        System.out.println(ascii);
+//
+//        System.out.println(ByteBufUtil.decodeHexDump(ascii));
+//        String s1 = new String(ByteBufUtil.decodeHexDump(ascii),"ASCII");
+//        System.out.println(s1);
         SpringApplication.run(GatewayApplication.class);
     }
 
