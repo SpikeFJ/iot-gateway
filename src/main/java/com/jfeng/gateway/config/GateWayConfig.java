@@ -36,6 +36,10 @@ public class GateWayConfig implements ApplicationContextAware {
 
     private ApplicationContext applicationContext;
 
+    /**
+     * 会话监听器
+     * @return
+     */
     @Bean
     public List<SessionListener> sessionListener() {
         List<SessionListener> listeners = new ArrayList<>();
@@ -57,6 +61,10 @@ public class GateWayConfig implements ApplicationContextAware {
         return listeners;
     }
 
+    /**
+     * 普通上行数据分发器
+     * @return
+     */
     @Bean
     public Dispatcher dispatcher() {
         Dispatcher dispatcher = applicationContext.getBean(SpringbootDispatcher.class);

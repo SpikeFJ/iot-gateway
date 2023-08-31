@@ -12,6 +12,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -34,6 +35,7 @@ public class KafkaNotifySessionListener implements SessionListener {
     private Map<String, String> topics;
 
     public void init(Map<String, String> topics) {
+        this.topics = new HashMap<>();
         this.topics.put("ROOT_TOPIC", ROOT_TOPIC);
         this.topics = topics;
     }

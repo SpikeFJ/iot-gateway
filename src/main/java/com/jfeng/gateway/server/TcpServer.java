@@ -20,11 +20,16 @@ import io.netty.util.ResourceLeakDetector;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -34,15 +39,19 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 @Getter
 @Setter
+@Component
 public class TcpServer implements Server, SessionListener {
     ServerBootstrap bootstrap = new ServerBootstrap();
     EventLoopGroup bossGroup = new NioEventLoopGroup();
     EventLoopGroup workerGroup = new NioEventLoopGroup();
 
+    @Resource
     List<SessionListener> sessionListeners;
+    @Resource
     Dispatcher dispatcher;
-
+    @Resource
     RedisUtils redisUtils;
+
     String localAddress;
     //TODO 协议code和handler处理器之间的联系及约束
     String protocol;
@@ -177,16 +186,38 @@ public class TcpServer implements Server, SessionListener {
                         String sendNo = value[1];
 
                         if (this.contains(deviceId)) {
-                            //1. 在本机上线则发送
+                            //1. 在本机上线则返回超时
                             TcpSession session = this.get(deviceId);
                             CommandReq req = JsonUtils.deserialize(String.valueOf(redisUtils.get(TO_BE_SEND_REQ + deviceId, sendNo)), CommandReq.class);
-                            session.send(ByteBufUtil.decodeHexDump(req.getData()), true);
+
+                            redisUtils.remove(TO_BE_SEND, sendNo);
+                            redisUtils.delete(TO_BE_SEND_REQ + deviceId, sendNo);
                         } else {
-                            //2.不在本机，在其他机器
-                            //3.未上线
+                            //2.不在本机，在其他机器，则不处理
+                            //3.未上线，则加锁，并返回超时
+
+                            //但是会造成数据重复处理，假设一个任务发起了100w请求，每个网关都要进行100w次读取redis，因为是广播，
+                            //广播不是好的处理方式，是否可以把超时的逻辑提取到任务调度中去
                         }
                     });
                     //2. 已发送
+                    Set<String> sent = redisUtils.rangeByScore(SENT, 0, System.currentTimeMillis());
+                    sent.parallelStream().forEach(x -> {
+                        String[] value = x.split("_");
+                        String deviceId = value[0];
+                        String sendNo = value[1];
+
+                        if (this.contains(deviceId)) {
+                            //1. 在本机上线则返回超时
+                            TcpSession session = this.get(deviceId);
+                            CommandReq req = JsonUtils.deserialize(String.valueOf(redisUtils.get(SENT + deviceId, sendNo)), CommandReq.class);
+
+                            redisUtils.remove(SENT, sendNo);
+                            redisUtils.delete(SENT_REQ + deviceId, sendNo);
+                        } else {
+
+                        }
+                    });
                 } catch (Exception e) {
                     log.warn("下行检测", e);
                 } finally {
@@ -353,6 +384,15 @@ public class TcpServer implements Server, SessionListener {
         dispatcher.sendNext(packetId, new DispatchMessage(protocol, hexData, localAddress));
     }
 
+
+    private Map<String, List<CommandReq>> toBeSendFromKafka = new HashMap<>();
+
+    public void add(String packageId, CommandReq req) {
+        if (toBeSendFromKafka.containsKey(packageId) == false) {
+            toBeSendFromKafka.put(packageId, new ArrayList<>());
+        }
+        toBeSendFromKafka.get(packageId).add(req);
+    }
 
     /**
      * 发送数据至设备（需要将下发的请求数据外置存储，因为可能发送下行命令后掉线，在另一个机器上线。）

@@ -1,5 +1,6 @@
 package com.jfeng.gateway.message;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -11,9 +12,12 @@ import lombok.extern.slf4j.Slf4j;
 public class CommandReq {
     String deviceId;//设备
     String sendNo;//发送序号、标识唯一请求
-    String data;
-    String sendTime;
+    String data; //发送数据：16进制字符串
     boolean sendOnOffline;//是否离线下发（即终端不在线时，等待终端上线后再次发送)
     int timeout; // 单位秒
-    int tryTimes;//重试次数
+    int maxTryTimes;//最大重试次数
+
+    String sendTime; //发送时间
+    @JsonIgnore
+    int tryTimes = 1;//当前重试次数，默认1
 }
