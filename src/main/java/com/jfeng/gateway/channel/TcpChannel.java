@@ -112,14 +112,14 @@ public class TcpChannel {
         } else if (toSend != null) {
             if (sendingIndex < toSend.length) {
                 ModbusResp receive = toSend[sendingIndex].receive(byteBuf);
-                log.info("当前帧:" + sendingIndex + ",总帧数:" + toSend.length + ",解析数据" + JsonUtils.serialize(receive.getData()));
+                log.info("当前帧:" + (sendingIndex + 1) + ",总帧数:" + toSend.length + ",解析数据" + JsonUtils.serialize(receive.getData()));
 
                 tcpManage.getKafkaTemplate().send("parse_out_tahsensor", packetId, JsonUtils.serialize(receive.getData()));
             }
 
             if (sendingIndex + 1 < toSend.length) {
                 sendingIndex++;
-                log.info("准备发送下一帧:" + sendingIndex + ",总数:" + toSend.length);
+                //log.info("准备发送下一帧:" + sendingIndex + ",总数:" + toSend.length);
                 sendNext();
             } else {
                 log.info("本次发送结束");

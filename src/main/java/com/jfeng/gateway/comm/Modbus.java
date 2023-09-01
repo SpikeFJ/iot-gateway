@@ -2,6 +2,7 @@ package com.jfeng.gateway.comm;
 
 import com.jfeng.gateway.util.Crc16Utils;
 import com.jfeng.gateway.util.DateTimeUtils2;
+import com.jfeng.gateway.util.StringUtils;
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 import lombok.Setter;
@@ -63,27 +64,30 @@ public class Modbus {
         int byteNum = in.readByte();
         short i = in.readShort();
 
-        ExpressionParser parser = new SpelExpressionParser();
+        if (StringUtils.isEmpty(expression)) {
+            result.put("value", String.valueOf(i));
+        } else {
+            ExpressionParser parser = new SpelExpressionParser();
 
-        EvaluationContext context = new StandardEvaluationContext();
-        context.setVariable("x", i);
+            EvaluationContext context = new StandardEvaluationContext();
+            context.setVariable("x", i);
 
-        if (dataType == 0) {
-            Integer value = parser.parseExpression(expression.replace("x", "#x")).getValue(context, Integer.class);
-            rspCode = 1;
-            result.put("value", value.toString());
-        } else if (dataType == 1 || dataType == 2) {
-            Double value = parser.parseExpression(expression.replace("x", "#x")).getValue(context, Double.class);
+            if (dataType == 0) {
+                Integer value = parser.parseExpression(expression.replace("x", "#x")).getValue(context, Integer.class);
+                rspCode = 1;
+                result.put("value", value.toString());
+            } else if (dataType == 1 || dataType == 2) {
+                Double value = parser.parseExpression(expression.replace("x", "#x")).getValue(context, Double.class);
 
-            BigDecimal valueWrap = BigDecimal.valueOf(value);
-            valueWrap.setScale(decimalLength, RoundingMode.HALF_DOWN);
-            rspCode = 1;
+                BigDecimal valueWrap = BigDecimal.valueOf(value);
+                valueWrap.setScale(decimalLength, RoundingMode.HALF_DOWN);
+                rspCode = 1;
 
-            result.put("value", valueWrap.toPlainString());
-        } else if (dataType == 3) {
+                result.put("value", valueWrap.toPlainString());
+            } else if (dataType == 3) {
 
+            }
         }
-
         return ModbusResp.success(result);
     }
 

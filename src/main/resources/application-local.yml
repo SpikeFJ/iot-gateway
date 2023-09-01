@@ -5,7 +5,7 @@ server:
     min-response-size: 512
 spring:
   kafka:
-    bootstrap-servers:  10.62.1.222:9092
+    bootstrap-servers:  127.0.0.1:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
