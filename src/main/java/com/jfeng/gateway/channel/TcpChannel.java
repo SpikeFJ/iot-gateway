@@ -89,12 +89,14 @@ public class TcpChannel {
     }
 
     Sending[] toSend;
+    private String dtuCode;
     private byte[] heartCode;
     private String heartCodeStr;
     int sendingIndex;
 
     public void initSetting(CollectionSetting collectionSetting) throws Exception {
         if (collectionSetting != null) {
+            this.dtuCode = collectionSetting.getDtuCode();
             this.heartCodeStr = collectionSetting.getHeartCode();
             this.heartCode = StringUtils.isNotEmpty(collectionSetting.getHeartCode()) ? collectionSetting.getHeartCode().getBytes("ASCII") : null;
             toSend = new Sending[collectionSetting.getModbusList().size()];
