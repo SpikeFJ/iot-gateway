@@ -54,12 +54,9 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
                     String mappingKey = Constant.ONLINE_MAPPING + tcpChannel.getPacketId();
 
                     if (event.state == 1) {
-                        Map<String, String> mapping = new HashMap<>();
-                        mapping.put(Constant.MACHINE, tcpChannel.getLocalAddress());
-                        mapping.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-                        redisUtils.putAll(mappingKey, mapping);
+                        redisUtils.put("acc:stat:online", tcpChannel.getPacketId(), tcpChannel.getLocalAddress());
                     } else {
-                        redisUtils.delete(mappingKey);
+                        redisUtils.delete("acc:stat:online", tcpChannel.getPacketId());
                     }
 
                 } catch (Exception e) {
@@ -176,15 +173,13 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
     private int loginTimeout;//登陆超时
     private int heartTimeout;//心跳超时
     private int timeoutCheckInterval = 3000;//检测周期
-    private int checkPeriod;//检测周期
+    private int checkPeriod = 1000;//检测周期
 
     private boolean allowMultiSocketPerDevice = false;//是否需要单设备多连接，如双卡设备
     private Map<String, TcpChannel> connected = new ConcurrentHashMap<>();//已连接集合
     private Map<String, TcpChannel> onLines = new ConcurrentHashMap<>();//已在线集合
-    private Map<String, List<TcpChannel>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
 
     private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
-    private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
 
     private AtomicInteger totalConnectNum = new AtomicInteger(0);//总连接次数
     private AtomicInteger totalCloseNum = new AtomicInteger(0);//总关闭次数
@@ -202,7 +197,6 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
         }
         totalConnectNum.getAndIncrement();
         connected.putIfAbsent(channelId, tcpChannel);
-
     }
 
     @Override
@@ -250,19 +244,8 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
         if (!this.connected.remove(tcpChannel.getChannelId(), tcpChannel)) {
             log.warn("移除连接会话失败");
         }
-        tcpChannel.getChannel().eventLoop().execute(() -> {
-            String onlineKey = "iot:machine:" + tcpChannel.getLocalAddress() + ":connect:" + tcpChannel.getRemoteAddress();
-            redisUtils.delete(onlineKey);
-        });
-
         String packetId = tcpChannel.getPacketId();
         TcpChannel clientOld = this.onLines.putIfAbsent(packetId, tcpChannel);
-        if (clientOld != null && allowMultiSocketPerDevice) {
-            if (this.onLinesSpare.containsKey(packetId) == false) {
-                this.onLinesSpare.put(packetId, new ArrayList<>());
-            }
-            this.onLinesSpare.get(packetId).add(tcpChannel);
-        }
         stateChangeEvent.offer(new StateChangeEvent(tcpChannel, 1));
     }
 
@@ -284,18 +267,6 @@ public class TcpManage<T extends TcpChannel> implements ChannelEventListener, On
         public StateChangeEvent(TcpChannel session, int state) {
             this.session = session;
             this.state = state;
-        }
-    }
-
-    /**
-     * 连接明细
-     */
-    class ConnectDetail {
-
-        Map<String, String> connectInfo;
-
-        public ConnectDetail(Map<String, String> connectInfo) {
-            this.connectInfo = connectInfo;
         }
     }
 }
