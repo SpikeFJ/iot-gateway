@@ -16,12 +16,12 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 刷新单个设备流量监听器。
+ * 单个会话监听器
  */
 @Component
 @Setter
 @Slf4j
-public class RedisRefreshSingleDeviceListener implements SessionListener {
+public class SingleSessionRedisListener implements SessionListener {
     @Resource
     private RedisUtils redisUtils;
 
@@ -52,8 +52,10 @@ public class RedisRefreshSingleDeviceListener implements SessionListener {
 
     @Override
     public void online(TcpSession tcpSession) {
-
+        tcpSession.getTcpServer().notify(tcpSession.getPacketId());
+        tcpSession.getTcpServer().loadKafkaData(tcpSession);
     }
+
 
     @Override
     public void Offline(TcpSession tcpSession, String message) {

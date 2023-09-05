@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.jfeng.gateway.protocol.none4.StandardExtend4Decoder.SESSION_KEY;
 
@@ -45,6 +46,7 @@ public class TcpSession {
     private String remoteAddress;
     private String localAddress;
     private TcpServer tcpServer;
+    private AtomicBoolean isSending = new AtomicBoolean(false);
 
     private Map<String, Object> tag = new HashMap<>();
     private List<SessionListener> sessionListeners = new ArrayList<>();
@@ -110,6 +112,20 @@ public class TcpSession {
             channel.writeAndFlush(send);
         }
         sessionListeners.stream().forEach(x -> x.onSend(this, send));
+    }
+
+    public void send() {
+        if (this.isSending.compareAndSet(false, true)) {
+            this.channel.eventLoop().execute(() -> {
+                try {
+                    this.getTcpServer().sendWaitToSend(this);
+                } catch (Exception e) {
+                    log.warn("发送失败", e);
+                } finally {
+                    this.isSending.set(false);
+                }
+            });
+        }
     }
 
     public void close(String closeReason) {

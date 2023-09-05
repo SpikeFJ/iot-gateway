@@ -1,9 +1,7 @@
 package com.jfeng.gateway;
 
 import com.jfeng.gateway.config.GateWayConfig;
-import com.jfeng.gateway.message.CommandReq;
 import com.jfeng.gateway.server.TcpServer;
-import com.jfeng.gateway.util.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.BeansException;
@@ -47,12 +45,7 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
         try {
             final String value = records.value();
             log.debug("接收消息: " + value + ",当前队列长度：");
-            CommandReq toBeSend = JsonUtils.deserialize(value, CommandReq.class);
-
-            if (tcpServer.contains(toBeSend.getDeviceId())) {
-                tcpServer.add(toBeSend.getDeviceId(), toBeSend);
-            }
-
+            tcpServer.fromKafka(value);
         } catch (Exception e) {
             log.warn("一般上行数据处理异常：", e);
         }

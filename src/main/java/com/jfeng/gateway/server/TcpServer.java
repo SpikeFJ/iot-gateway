@@ -26,10 +26,7 @@ import javax.annotation.Resource;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -56,10 +53,11 @@ public class TcpServer implements Server, SessionListener {
     //TODO 协议code和handler处理器之间的联系及约束
     String protocol;
 
-    private static final String TO_BE_SEND = "IOT:TO_BE_SEND";
-    private static final String TO_BE_SEND_REQ = "IOT:TO_BE_SEND:REQ:";
+    private static final String WAIT_TO_SEND = "IOT:WAIT_TO_SEND";
+    private static final String WAIT_TO_ACK = "IOT:WAIT_TO_ACK";
     private static final String SENT = "IOT:SENT";
-    private static final String SENT_REQ = "IOT:SENT:REQ:";
+
+    private static final String WAIT_TO_SEND_KAFKA = "IOT:WAIT_TO_SEND_KAFKA";
 
     @Override
     public void init(Map<String, String> parameters) {
@@ -84,7 +82,7 @@ public class TcpServer implements Server, SessionListener {
                     String mappingKey = Constant.ONLINE_MAPPING + tcpSession.getPacketId();
 
                     Map<String, String> oldOnlineInfo;
-                    //维护上一次因为异常未保存的历史连接信息
+                    //1. 维护上一次因为异常未保存的历史连接信息
                     if (redisUtils.hasKey(onlineKey) && ((oldOnlineInfo = redisUtils.entries(onlineKey)) != null)) {
                         LocalDateTime createTime = DateTimeUtils2.parse(oldOnlineInfo.get(Constant.ONLINE_INFO_CREATE_TIME), "yyyy-MM-dd HH:mm:ss");
                         LocalDateTime endTime = event.state == 1 ? DateTimeUtils2.parse(oldOnlineInfo.get(Constant.ONLINE_INFO_LAST_REFRESH_TIME), "yyyy-MM-dd HH:mm:ss") : LocalDateTime.now();
@@ -93,7 +91,7 @@ public class TcpServer implements Server, SessionListener {
                         oldOnlineInfo.put(Constant.ONLINE_INFO_TOTAL_MILL, String.valueOf(totalMill));
                         connectDetails.offer(new ConnectDetail(oldOnlineInfo));
                     }
-
+                    //2. 维护映射关系
                     if (event.state == 1) {
                         Map<String, String> mapping = new HashMap<>();
                         mapping.put(Constant.MACHINE, tcpSession.getLocalAddress());
@@ -102,7 +100,8 @@ public class TcpServer implements Server, SessionListener {
                     } else {
                         redisUtils.delete(mappingKey);
                     }
-
+                    //TODO 3. 加载待发送数据
+                    String waitToSend = redisUtils.rightPopAndLeftPush(WAIT_TO_SEND + tcpSession.getId(), WAIT_TO_ACK + tcpSession.getId());
                 } catch (Exception e) {
                     log.warn("在线列表存储异常：", e);
                 }
@@ -175,49 +174,32 @@ public class TcpServer implements Server, SessionListener {
                 }
             }
         });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("下行超时检测")).submit(() -> {
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("同步下发")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
-                    //1. 待发送
-                    Set<String> toBeSendValue = redisUtils.rangeByScore(TO_BE_SEND, 0, System.currentTimeMillis());
-                    toBeSendValue.parallelStream().forEach(x -> {
-                        String[] value = x.split("_");
-                        String deviceId = value[0];
-                        String sendNo = value[1];
+                    String deviceId = haveWaitToSend.take();
+                    if (this.contains(deviceId)) {
+                        TcpSession session = this.get(deviceId);
+                        session.send();
+                    }
+                } catch (Exception e) {
+                    log.warn("下行检测", e);
+                } finally {
+                    try {
+                        Thread.sleep(checkPeriod);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("异步下发")).submit(() -> {
+            while (isRunning && !Thread.currentThread().isInterrupted()) {
+                try {
+                    CommandReq req = this.waitToSendFromKafka.take();
 
-                        if (this.contains(deviceId)) {
-                            //1. 在本机上线则返回超时
-                            TcpSession session = this.get(deviceId);
-                            CommandReq req = JsonUtils.deserialize(String.valueOf(redisUtils.get(TO_BE_SEND_REQ + deviceId, sendNo)), CommandReq.class);
-
-                            redisUtils.remove(TO_BE_SEND, sendNo);
-                            redisUtils.delete(TO_BE_SEND_REQ + deviceId, sendNo);
-                        } else {
-                            //2.不在本机，在其他机器，则不处理
-                            //3.未上线，则加锁，并返回超时
-
-                            //但是会造成数据重复处理，假设一个任务发起了100w请求，每个网关都要进行100w次读取redis，因为是广播，
-                            //广播不是好的处理方式，是否可以把超时的逻辑提取到任务调度中去
-                        }
-                    });
-                    //2. 已发送
-                    Set<String> sent = redisUtils.rangeByScore(SENT, 0, System.currentTimeMillis());
-                    sent.parallelStream().forEach(x -> {
-                        String[] value = x.split("_");
-                        String deviceId = value[0];
-                        String sendNo = value[1];
-
-                        if (this.contains(deviceId)) {
-                            //1. 在本机上线则返回超时
-                            TcpSession session = this.get(deviceId);
-                            CommandReq req = JsonUtils.deserialize(String.valueOf(redisUtils.get(SENT + deviceId, sendNo)), CommandReq.class);
-
-                            redisUtils.remove(SENT, sendNo);
-                            redisUtils.delete(SENT_REQ + deviceId, sendNo);
-                        } else {
-
-                        }
-                    });
+                    TcpSession session = this.get(req.getDeviceId());
+                    session.send(ByteBufUtil.decodeHexDump(req.getData()), true);
                 } catch (Exception e) {
                     log.warn("下行检测", e);
                 } finally {
@@ -231,6 +213,31 @@ public class TcpServer implements Server, SessionListener {
         });
     }
 
+    public void sendWaitToSend(TcpSession session) throws Exception {
+        String deviceId = session.getPacketId();
+        //1. 待确认队列
+        while (session.getSessionStatus() != SessionStatus.CLOSED && redisUtils.rightPopAndLeftPush(WAIT_TO_ACK + deviceId, WAIT_TO_SEND + deviceId) != null) {
+            Thread.sleep(1);
+        }
+
+        //2.1 读取待发送最新元素
+        String toBeSend;
+        while (session.getSessionStatus() != SessionStatus.CLOSED && (toBeSend = redisUtils.rightPopAndLeftPush(WAIT_TO_SEND + deviceId, WAIT_TO_ACK + deviceId)) != null) {
+            CommandReq req = JsonUtils.deserialize(toBeSend, CommandReq.class);
+            req.setTryTimes(req.getTryTimes() + 1);
+
+            //2.2 发送
+            session.send(ByteBufUtil.decodeHexDump(req.getData()), true);
+
+            //2.3 移除确认
+            redisUtils.rightPop(WAIT_TO_ACK + deviceId);
+
+            //2.4 保持至已发送
+            redisUtils.put(SENT, req.getSendNo(), JsonUtils.serialize(req));
+
+            Thread.sleep(1);
+        }
+    }
 
     @Override
     public void start() throws Exception {
@@ -295,6 +302,7 @@ public class TcpServer implements Server, SessionListener {
 
     private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
     private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
+    private BlockingQueue<String> haveWaitToSend = new LinkedBlockingQueue<>(100);//有要发送的数据的设备Id
 
     private AtomicInteger totalConnectNum = new AtomicInteger(0);//总连接次数
     private AtomicInteger totalCloseNum = new AtomicInteger(0);//总关闭次数
@@ -365,6 +373,8 @@ public class TcpServer implements Server, SessionListener {
                 this.onLinesSpare.put(packetId, new ArrayList<>());
             }
             this.onLinesSpare.get(packetId).add(tcpSession);
+        } else {
+            clientOld.close("重复登陆");
         }
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, 1));
     }
@@ -384,60 +394,52 @@ public class TcpServer implements Server, SessionListener {
         dispatcher.sendNext(packetId, new DispatchMessage(protocol, hexData, localAddress));
     }
 
+    private BlockingQueue<CommandReq> waitToSendFromKafka = new LinkedBlockingQueue<>(10000);
 
-    private Map<String, List<CommandReq>> toBeSendFromKafka = new HashMap<>();
 
-    public void add(String packageId, CommandReq req) {
-        if (toBeSendFromKafka.containsKey(packageId) == false) {
-            toBeSendFromKafka.put(packageId, new ArrayList<>());
+    public void loadKafkaData(TcpSession session) {
+        String element = null;
+        while (session.getSessionStatus() != SessionStatus.CLOSED && (element = redisUtils.rightPop(WAIT_TO_ACK + session.getPacketId())) != null) {
+            this.fromKafka(element);
         }
-        toBeSendFromKafka.get(packageId).add(req);
+    }
+
+    public void fromKafka(String value) {
+        CommandReq req = JsonUtils.deserialize(value, CommandReq.class);
+
+        String deviceId = req.getDeviceId();
+
+        if (contains(deviceId)) {
+            waitToSendFromKafka.offer(req);
+        } else if (req.isSendOnOffline()) {
+            redisUtils.leftPush(WAIT_TO_SEND_KAFKA + deviceId, value);
+        }
     }
 
     /**
-     * 发送数据至设备（需要将下发的请求数据外置存储，因为可能发送下行命令后掉线，在另一个机器上线。）
+     * 来自http的下行发送
      */
-    public void sendToDevice(CommandReq request) throws Exception {
-        if (this.contains(request.getDeviceId())) {
-            TcpSession session = this.get(request.getDeviceId());
-            session.send(ByteBufUtil.decodeHexDump(request.getData()), true);
+    public void fromHttp(CommandReq request) throws Exception {
+        String deviceId = request.getDeviceId();
 
-            sent(request);
+        if (this.contains(deviceId)) {
+            saveWaitToSend(deviceId, request);
+            notify(deviceId);
+
         } else if (request.isSendOnOffline()) {
-            toBeSend(request);
+            saveWaitToSend(deviceId, request);
         } else {
             log.warn("设备[" + request.getDeviceId() + "]不在线。");
-            //TODO 返回响应
         }
     }
 
-
-    /**
-     * 保存待发送队列
-     *
-     * @param toBeSendReq
-     */
-    private void toBeSend(CommandReq toBeSendReq) {
-        //1. 请求信息
-        redisUtils.put(toBeSendReq.getDeviceId(), toBeSendReq.getSendNo(), JsonUtils.serialize(toBeSendReq));
-        //2. 超时信息(默认1天)
-        long endTime = System.currentTimeMillis() + 60 * 1000 * 60 * 24;
-        redisUtils.add(TO_BE_SEND, toBeSendReq.getDeviceId() + "_" + toBeSendReq.getSendNo(), endTime);
+    public void saveWaitToSend(String deviceId, CommandReq commandReq) {
+        redisUtils.leftPush(WAIT_TO_SEND + deviceId, JsonUtils.serialize(commandReq));
     }
 
-    /**
-     * 保存已发送队列
-     *
-     * @param toSentReq
-     */
-    private void sent(CommandReq toSentReq) {
-        //1. 请求信息
-        redisUtils.put(toSentReq.getDeviceId(), toSentReq.getSendNo(), JsonUtils.serialize(toSentReq));
-        //2. 超时信息
-        long endTime = System.currentTimeMillis() + toSentReq.getTimeout() * 1000;
-        redisUtils.add(SENT, toSentReq.getDeviceId() + "_" + toSentReq.getSendNo(), endTime);
+    public void notify(String deviceId) {
+        haveWaitToSend.offer(deviceId);
     }
-
 
     /**
      * 连接状态切换通知

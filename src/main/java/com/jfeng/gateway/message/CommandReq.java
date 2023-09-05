@@ -1,6 +1,5 @@
 package com.jfeng.gateway.message;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,7 +16,6 @@ public class CommandReq {
     int timeout; // 单位秒
     int maxTryTimes;//最大重试次数
 
-    String sendTime; //发送时间
-    @JsonIgnore
+    long sendTime; //发送时间
     int tryTimes = 1;//当前重试次数，默认1
 }
