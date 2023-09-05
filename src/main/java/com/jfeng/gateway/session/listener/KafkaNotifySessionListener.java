@@ -27,10 +27,10 @@ public class KafkaNotifySessionListener implements SessionListener {
     private final String SEND = "send";
     private final String RECEIVE = "receive";
     private final String RECEIVE_COMPLETE = "receive_complete";
-    private final String CLOSE = "CLOSE";
+    private final String CLOSE = "close";
 
-    private final String ONLINE = "ONLINE";
-    private final String OFFLINE = "OFFLINE";
+    private final String ONLINE = "online";
+    private final String OFFLINE = "offline";
 
     private Map<String, String> topics;
 

@@ -10,17 +10,16 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import io.netty.util.AttributeKey;
-import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+
+import static com.jfeng.gateway.protocol.none4.StandardExtend4Decoder.SESSION_KEY;
 
 /**
  * 统计处理器（包括收单个连接的收发数据、连接、断开次数)
  */
 @Slf4j
 public class StatisticsHandler extends ChannelDuplexHandler {
-    public static final AttributeKey<TcpSession> SESSION_ATTRIBUTE_KEY = AttributeKey.valueOf("ClientChannel");
     private final TcpServer tcpServer;
 
     public StatisticsHandler(TcpServer tcpServer) {
@@ -33,7 +32,7 @@ public class StatisticsHandler extends ChannelDuplexHandler {
 
         Channel channel = ctx.channel();
         TcpSession tcpSession = new TcpSession(channel, tcpServer);
-        channel.attr(SESSION_ATTRIBUTE_KEY).set(tcpSession);
+        channel.attr(SESSION_KEY).set(tcpSession);
         MDC.put(Constant.LOG_ADDRESS, channel.toString());
 
         tcpSession.connect();
@@ -42,19 +41,21 @@ public class StatisticsHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        TcpSession client = ctx.channel().attr(SESSION_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(SESSION_KEY).get();
 
         ByteBuf byteBuf = (ByteBuf) msg;
         client.receive(ByteBufUtil.getBytes(byteBuf));
-        log.debug("接收>>:" + ByteBufUtil.hexDump(byteBuf));
 
-        ReferenceCountUtil.release(byteBuf);
+        MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(client.getShortChannelId()));
+        log.info("接收>>:" + ByteBufUtil.hexDump(byteBuf));
+        MDC.remove(Constant.LOG_TRANSACTION_ID);
+
         super.channelRead(ctx, msg);
     }
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-        TcpSession client = ctx.channel().attr(SESSION_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(SESSION_KEY).get();
         if (client != null) {
             ByteBuf byteBuf = (ByteBuf) msg;
             client.send(ByteBufUtil.getBytes(byteBuf));
@@ -68,7 +69,7 @@ public class StatisticsHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        TcpSession client = ctx.channel().attr(SESSION_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(SESSION_KEY).get();
         if (client != null) {
             client.close("主动断开");
         }
@@ -78,7 +79,7 @@ public class StatisticsHandler extends ChannelDuplexHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("异常断开", cause.getMessage());
-        TcpSession client = ctx.channel().attr(SESSION_ATTRIBUTE_KEY).get();
+        TcpSession client = ctx.channel().attr(SESSION_KEY).get();
         if (client != null) {
             client.close(cause.getMessage());
         }

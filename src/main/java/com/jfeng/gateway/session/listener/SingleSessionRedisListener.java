@@ -27,7 +27,7 @@ public class SingleSessionRedisListener implements SessionListener {
 
     @Override
     public void onConnect(TcpSession tcpSession) {
-
+        saveSingleChannel(tcpSession);
     }
 
     @Override
@@ -52,6 +52,7 @@ public class SingleSessionRedisListener implements SessionListener {
 
     @Override
     public void online(TcpSession tcpSession) {
+        saveSingleChannel(tcpSession);
         tcpSession.getTcpServer().notify(tcpSession.getPacketId());
         tcpSession.getTcpServer().loadKafkaData(tcpSession);
     }
@@ -66,40 +67,39 @@ public class SingleSessionRedisListener implements SessionListener {
     /**
      * 保存单个连接信息
      *
-     * @param channel
+     * @param tcpSession
      */
-    private void saveSingleChannel(TcpSession channel) {
-        if (channel == null) {
+    private void saveSingleChannel(TcpSession tcpSession) {
+        if (tcpSession == null) {
             log.warn("连接已关闭");
-            channel.close("检测到连接关闭");
             return;
         }
-        if (channel.getSessionStatus() == SessionStatus.CONNECTED) {
-            String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":connect:" + channel.getRemoteAddress();
+        if (tcpSession.getSessionStatus() == SessionStatus.CONNECTED) {
+            String onlineKey = Constant.SYSTEM_PREFIX + tcpSession.getTcpServer().getLocalAddress() + ":connect:" + tcpSession.getRemoteAddress();
 
             Map<String, String> hashValue = new HashMap<>();
-            hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(channel.getCreateTime()));
+            hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(tcpSession.getCreateTime()));
             hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
 
             redisUtils.putAll(onlineKey, hashValue);
-        } else if (channel.getSessionStatus() == SessionStatus.LOGIN) {
-            String onlineKey = "iot:machine:" + channel.getLocalAddress() + ":online:" + channel.getPacketId();
-            String onlineLocationKey = Constant.ONLINE_MAPPING + channel.getPacketId();
+        } else if (tcpSession.getSessionStatus() == SessionStatus.LOGIN) {
+            String onlineKey = Constant.SYSTEM_PREFIX + tcpSession.getTcpServer().getLocalAddress() + ":online:" + tcpSession.getPacketId();
+            String onlineLocationKey = Constant.ONLINE_MAPPING + tcpSession.getPacketId();
 
             Map<String, String> hashValue = new HashMap<>();
-            hashValue.put(Constant.ONLINE_INFO_REMOTE_ADDRESS, channel.getRemoteAddress());
+            hashValue.put(Constant.ONLINE_INFO_REMOTE_ADDRESS, tcpSession.getRemoteAddress());
 
-            hashValue.put(Constant.ONLINE_INFO_PACKET_ID, channel.getPacketId());
-            hashValue.put(Constant.ONLINE_INFO_ID, channel.getId());
-            hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(channel.getCreateTime()));
+            hashValue.put(Constant.ONLINE_INFO_PACKET_ID, tcpSession.getPacketId());
+            hashValue.put(Constant.ONLINE_INFO_ID, tcpSession.getId());
+            hashValue.put(Constant.ONLINE_INFO_CREATE_TIME, DateTimeUtils2.outString(tcpSession.getCreateTime()));
 
-            hashValue.put(Constant.ONLINE_INFO_RECEIVE_PACKETS, String.valueOf(channel.getReceivedPackets()));
-            hashValue.put(Constant.ONLINE_INFO_RECEIVE_BYTES, String.valueOf(channel.getReceivedBytes()));
-            hashValue.put(Constant.ONLINE_INFO_LAST_RECEIVE_TIME, DateTimeUtils2.outString(channel.getLastReadTime()));
+            hashValue.put(Constant.ONLINE_INFO_RECEIVE_PACKETS, String.valueOf(tcpSession.getReceivedPackets()));
+            hashValue.put(Constant.ONLINE_INFO_RECEIVE_BYTES, String.valueOf(tcpSession.getReceivedBytes()));
+            hashValue.put(Constant.ONLINE_INFO_LAST_RECEIVE_TIME, DateTimeUtils2.outString(tcpSession.getLastReadTime()));
 
-            hashValue.put(Constant.ONLINE_INFO_SEND_PACKETS, String.valueOf(channel.getSendPackets()));
-            hashValue.put(Constant.ONLINE_INFO_SEND_BYTES, String.valueOf(channel.getSendBytes()));
-            hashValue.put(Constant.ONLINE_INFO_LAST_SEND_TIME, DateTimeUtils2.outString(channel.getLastWriteTime()));
+            hashValue.put(Constant.ONLINE_INFO_SEND_PACKETS, String.valueOf(tcpSession.getSendPackets()));
+            hashValue.put(Constant.ONLINE_INFO_SEND_BYTES, String.valueOf(tcpSession.getSendBytes()));
+            hashValue.put(Constant.ONLINE_INFO_LAST_SEND_TIME, DateTimeUtils2.outString(tcpSession.getLastWriteTime()));
 
             hashValue.put(Constant.ONLINE_INFO_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
 
@@ -107,7 +107,7 @@ public class SingleSessionRedisListener implements SessionListener {
             redisUtils.expire(onlineKey, 5, TimeUnit.MINUTES);
             //3. 维护设备和所属机器的关系
             Map<String, String> mapping = new HashMap<>();
-            mapping.put(Constant.MACHINE, channel.getLocalAddress());
+            mapping.put(Constant.MACHINE, tcpSession.getLocalAddress());
             mapping.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
             redisUtils.putAll(onlineLocationKey, mapping);
         }

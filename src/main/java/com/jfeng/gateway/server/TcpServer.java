@@ -23,10 +23,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -61,6 +65,11 @@ public class TcpServer implements Server, SessionListener {
 
     @Override
     public void init(Map<String, String> parameters) {
+        try {
+            localAddress = Utils.getLocalIp();
+        } catch (UnknownHostException e) {
+
+        }
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("连接明细")).submit(() -> {
             while (isRunning) {
                 try {
@@ -78,7 +87,7 @@ public class TcpServer implements Server, SessionListener {
                     StateChangeEvent event = stateChangeEvent.take();
                     TcpSession tcpSession = event.session;
 
-                    String onlineKey = "iot:machine:" + tcpSession.getLocalAddress() + ":online:" + tcpSession.getPacketId();
+                    String onlineKey = "iot:" + tcpSession.getLocalAddress() + ":online:" + tcpSession.getPacketId();
                     String mappingKey = Constant.ONLINE_MAPPING + tcpSession.getPacketId();
 
                     Map<String, String> oldOnlineInfo;
@@ -93,6 +102,9 @@ public class TcpServer implements Server, SessionListener {
                     }
                     //2. 维护映射关系
                     if (event.state == 1) {
+                        String connectKey = Constant.SYSTEM_PREFIX + tcpSession.getTcpServer().getLocalAddress() + ":connect:" + tcpSession.getRemoteAddress();
+                        redisUtils.delete(connectKey);
+
                         Map<String, String> mapping = new HashMap<>();
                         mapping.put(Constant.MACHINE, tcpSession.getLocalAddress());
                         mapping.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
@@ -100,8 +112,6 @@ public class TcpServer implements Server, SessionListener {
                     } else {
                         redisUtils.delete(mappingKey);
                     }
-                    //TODO 3. 加载待发送数据
-                    String waitToSend = redisUtils.rightPopAndLeftPush(WAIT_TO_SEND + tcpSession.getId(), WAIT_TO_ACK + tcpSession.getId());
                 } catch (Exception e) {
                     log.warn("在线列表存储异常：", e);
                 }
@@ -127,9 +137,9 @@ public class TcpServer implements Server, SessionListener {
                     Iterator<Map.Entry<String, TcpSession>> iterLogined = onLines.entrySet().iterator();
                     while (iterLogined.hasNext()) {
                         TcpSession session = iterLogined.next().getValue();
-                        if (session == null || session.getSessionStatus() == SessionStatus.CLOSED) {
+                        if (session == null) {
                             iterLogined.remove();
-                        } else if (session.getSessionStatus() == SessionStatus.LOGIN) {
+                        } else if (session.getSessionStatus() == SessionStatus.CLOSED || session.getSessionStatus() == SessionStatus.LOGIN) {
                             if (heartTimeout > 0 && timeOut(session.getLastReadTime(), heartTimeout)) {
                                 session.close("心跳超时,超时间隔：" + heartTimeout / 1000 + "s. 最后接收时间：" + DateTimeUtils.outEpochMilli(session.getLastReadTime()));
                             }
@@ -152,8 +162,8 @@ public class TcpServer implements Server, SessionListener {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
                     Map<String, String> hashValue = new HashMap<>();
-                    hashValue.put(Constant.TOTAL_ONLINE, String.valueOf(onLines.size()));
-                    hashValue.put(Constant.TOTAL_CONNECTED, String.valueOf(connected.size()));
+                    hashValue.put(Constant.ONLINE, String.valueOf(onLines.size()));
+                    hashValue.put(Constant.CONNECTED, String.valueOf(connected.size()));
                     hashValue.put(Constant.TOTAL_CONNECT_NUM, String.valueOf(totalConnectNum));
                     hashValue.put(Constant.TOTAL_CLOSE_NUM, String.valueOf(totalCloseNum));
                     hashValue.put(Constant.TOTAL_SEND_PACKETS, String.valueOf(totalSendPackets));
@@ -162,7 +172,7 @@ public class TcpServer implements Server, SessionListener {
                     hashValue.put(Constant.TOTAL_RECEIVE_BYTES, String.valueOf(totalReceiveBytes));
                     hashValue.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
 
-                    redisUtils.putAll("iot:machine:" + localAddress + ":summary", hashValue);
+                    redisUtils.putAll(Constant.SYSTEM_PREFIX + localAddress + ":summary", hashValue);
                 } catch (Exception e) {
                     log.warn("总流量统计", e);
                 } finally {
@@ -356,6 +366,8 @@ public class TcpServer implements Server, SessionListener {
             TcpSession removed = onLines.remove(packetId);
             if (removed != null) {
                 Offline(removed, reason);
+            }else{
+
             }
         }
     }
@@ -367,14 +379,18 @@ public class TcpServer implements Server, SessionListener {
         }
 
         String packetId = tcpSession.getPacketId();
-        TcpSession clientOld = this.onLines.putIfAbsent(packetId, tcpSession);
-        if (clientOld != null && allowMultiSocketPerDevice) {
-            if (this.onLinesSpare.containsKey(packetId) == false) {
-                this.onLinesSpare.put(packetId, new ArrayList<>());
-            }
-            this.onLinesSpare.get(packetId).add(tcpSession);
+
+        if (this.onLines.containsKey(packetId) == false) {
+            this.onLines.put(packetId, tcpSession);
         } else {
-            clientOld.close("重复登陆");
+            if (allowMultiSocketPerDevice) {
+                if (this.onLinesSpare.containsKey(packetId) == false) {
+                    this.onLinesSpare.put(packetId, new ArrayList<>());
+                }
+                this.onLinesSpare.get(packetId).add(tcpSession);
+            } else {
+                this.onLines.get(packetId).close("重复登陆");
+            }
         }
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, 1));
     }

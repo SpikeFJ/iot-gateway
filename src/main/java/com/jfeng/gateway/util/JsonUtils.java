@@ -1,5 +1,6 @@
 package com.jfeng.gateway.util;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -25,6 +26,7 @@ public class JsonUtils {
     }
     private static ObjectMapper objectMapper = new ObjectMapper();
     static {
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         //对于空对象转Json时不报错
         objectMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
         //允许属性名称没有引号
@@ -33,6 +35,35 @@ public class JsonUtils {
         objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
         //设置输入时忽略Json字符串存在但是JSON对象实际没有的属性
         objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        //序列化的时候序列对象的那些属性
+        //JsonInclude.Include.NON_DEFAULT 属性为默认值不序列化
+        //JsonInclude.Include.ALWAYS      所有属性
+        //JsonInclude.Include.NON_EMPTY   属性为 空（“”） 或者为 NULL 都不序列化
+        //JsonInclude.Include.NON_NULL    属性为NULL 不序列化
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+
+//        //configure方法 配置一些需要的参数
+//        // 转换为格式化的json 显示出来的格式美化
+//        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+//
+//        //反序列化时,遇到未知属性会不会报错
+//        //true - 遇到没有的属性就报错 false - 没有的属性不会管，不会报错
+//        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+//
+//        //如果是空对象的时候,不抛异常
+//        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+//
+//        // 忽略 transient 修饰的属性
+//        objectMapper.configure(MapperFeature.PROPAGATE_TRANSIENT_MARKER, true);
+//
+//        //修改序列化后日期格式
+//        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+//        objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
+//
+//        //处理不同的时区偏移格式
+//        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+//        objectMapper.registerModule(new JavaTimeModule());
     }
     /**
      * 将对象序列化为JSON字符串

@@ -1,13 +1,21 @@
 package com.jfeng.gateway.util;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 public class Utils {
     public static String getAddressInfo(SocketAddress socketAddress) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         return getIp(inetSocketAddress) + ":" + getPort(inetSocketAddress);
+    }
+
+    public static String getLocalIp() throws UnknownHostException {
+        final InetAddress localHost = InetAddress.getLocalHost();
+        final String hostAddress = localHost.getHostAddress();
+        return hostAddress;
     }
 
     public static String getIp(InetSocketAddress inetSocketAddress) {

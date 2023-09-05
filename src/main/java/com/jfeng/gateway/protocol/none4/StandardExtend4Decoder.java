@@ -1,9 +1,7 @@
 package com.jfeng.gateway.protocol.none4;
 
-import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.session.SessionStatus;
 import com.jfeng.gateway.session.TcpSession;
-import com.jfeng.gateway.util.TransactionIdUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -11,7 +9,6 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 
 import java.nio.ByteOrder;
 
@@ -46,9 +43,8 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
 
             session.receiveComplete(ByteBufUtil.getBytes(byteBuf));
 
-            MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(session.getShortChannelId()));
-            log.info("接收>>:" + ByteBufUtil.hexDump(byteBuf));
-
+//             MDC.put(Constant.LOG_TRANSACTION_ID, TransactionIdUtils.get(session.getShortChannelId()));
+//            log.info("接收>>:" + ByteBufUtil.hexDump(byteBuf));
 
             StandardProtocol4 protocol4 = new StandardProtocol4();
             protocol4.decode(byteBuf);
@@ -57,9 +53,10 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
                 return protocol4;
             }
 
-            session.getTcpServer().dispatch(session.getPacketId(),  ByteBufUtil.hexDump(byteBuf));
+            session.getTcpServer().dispatch(session.getPacketId(), ByteBufUtil.hexDump(byteBuf));
 
         } catch (Exception e) {
+            log.warn("decode", e);
             session.close("decode处理异常:" + e.getMessage());
         } finally {
             release(byteBuf);
@@ -80,6 +77,16 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
      * @throws Exception
      */
     private boolean canHandle(SessionStatus sessionStatus, int cmd) throws Exception {
-        return false;
+        return true;
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("异常断开", cause.getMessage());
+        TcpSession client = ctx.channel().attr(SESSION_KEY).get();
+        if (client != null) {
+            client.close(cause.getMessage());
+        }
+        super.exceptionCaught(ctx, cause);
     }
 }

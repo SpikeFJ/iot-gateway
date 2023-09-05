@@ -4,6 +4,9 @@ public class Constant {
     //<------------在线设备流量信息---------->
     public static final String SYSTEM_PREFIX = "iot:";
     public static final String MODULE_MACHINE = SYSTEM_PREFIX + "machine:";
+    public static final String ONLINE_MAPPING = SYSTEM_PREFIX + "online:";
+
+
     public static final String MACHINE_SUMMARY = MODULE_MACHINE + "%s" + ":SUMMARY";
     public static final String MACHINE_CONNECTED = MODULE_MACHINE + "%s" + ":CONNECTED";
     public static final String MACHINE_ONLINE = MODULE_MACHINE + "%s" + ":ONLINE";
@@ -15,7 +18,7 @@ public class Constant {
     /**
      * 设备和所在机器映射关系
      */
-    public static final String ONLINE_MAPPING = SYSTEM_PREFIX + "online:mapping:";
+
 
     //<-----------------在线数据----------------------->
     public static final String ONLINE_INFO_REMOTE_ADDRESS = "remote_address";
@@ -33,8 +36,8 @@ public class Constant {
 
     //<------------服务器流量信息---------->
     public static final String MACHINE = "machine";
-    public static final String TOTAL_ONLINE = "total_online";
-    public static final String TOTAL_CONNECTED = "total_connected";
+    public static final String ONLINE = "online";
+    public static final String CONNECTED = "connected";
     public static final String TOTAL_CONNECT_NUM = "total_connect_num";
     public static final String TOTAL_CLOSE_NUM = "total_close_num";
     public static final String TOTAL_SEND_PACKETS = "total_send_packets";

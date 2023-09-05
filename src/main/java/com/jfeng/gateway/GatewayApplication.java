@@ -8,6 +8,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -40,6 +41,7 @@ public class GatewayApplication implements CommandLineRunner, ApplicationContext
      *
      * @param records
      */
+    @ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
     @KafkaListener(topics = {"${gateway.send.topic}"})
     public void receiveMessage(ConsumerRecord<String, String> records) {
         try {
