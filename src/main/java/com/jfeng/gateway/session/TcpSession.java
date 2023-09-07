@@ -28,8 +28,8 @@ import static com.jfeng.gateway.protocol.none4.StandardExtend4Decoder.SESSION_KE
 public class TcpSession {
     private String channelId;//物理通道链路唯一标识
     private String shortChannelId;//物理通道链路唯一标识(简写用于日志)
-    private String packetId;//协议层面（也就是可以从报文中提取的）唯一标识
-    private String id;// 业务层面唯一标识:deviceId
+    private String deviceId;//设备Id，表明唯一设备，需要再协议有所体现
+    private String bId;// 业务层面唯一标识
 
     private long createTime;
     private long lastReadTime;
@@ -51,11 +51,9 @@ public class TcpSession {
     private Map<String, Object> tag = new HashMap<>();
     private List<SessionListener> sessionListeners = new ArrayList<>();
 
-    public TcpSession(Channel channel, TcpServer tcpSessionManage) {
+    public TcpSession(Channel channel, TcpServer tcpServer) {
         this.channel = channel;
-        this.tcpServer = tcpSessionManage;
-        this.sessionListeners.add(tcpSessionManage);
-        this.sessionListeners.addAll(tcpSessionManage.getSessionListeners());
+        this.tcpServer = tcpServer;
 
         this.sessionStatus = SessionStatus.CONNECTED;
         this.channelId = this.channel.id().asLongText();
@@ -63,6 +61,12 @@ public class TcpSession {
         this.remoteAddress = Utils.getAddressInfo(channel.remoteAddress());
         this.localAddress = Utils.getAddressInfo(channel.localAddress());
         this.createTime = ZonedDateTime.now().toInstant().toEpochMilli();
+
+        addListeners(this.tcpServer);
+    }
+
+    private void addListeners(TcpServer tcpServer) {
+        this.sessionListeners.add(tcpServer);
     }
 
 
@@ -152,13 +156,13 @@ public class TcpSession {
     public String toString() {
         StringBuilder s = new StringBuilder();
         s.append(",").append(remoteAddress);
-        s.append(",创建时间:" + DateTimeUtils.outEpochMilli(createTime));
-
+        s.append(",").append("当前状态:").append(sessionStatus);
+        s.append(",创建时间:").append(DateTimeUtils.outEpochMilli(createTime));
         if (lastReadTime != 0) {
-            s.append(",最后接收时间：" + DateTimeUtils.outEpochMilli(lastReadTime));
+            s.append(",最后接收时间:").append(DateTimeUtils.outEpochMilli(lastReadTime));
         }
         if (lastWriteTime != 0) {
-            s.append(",最后发送时间：" + DateTimeUtils.outEpochMilli(lastWriteTime));
+            s.append(",最后发送时间:").append(DateTimeUtils.outEpochMilli(lastWriteTime));
         }
 
         return s.substring(1);

@@ -31,8 +31,8 @@ public class LoginHandler extends MessageToMessageDecoder<StandardProtocol4> {
             ctx.writeAndFlush(buildLoginResp(protocol4, true));
 
             //4.维护终端唯一标识
-            tcpSession.setPacketId(terminalNo);
-            tcpSession.setId(terminalNo);
+            tcpSession.setDeviceId(terminalNo);
+            tcpSession.setBId(terminalNo);
             //5.更新在线终端列表
             tcpSession.login();
         } else {

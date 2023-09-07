@@ -1,18 +1,51 @@
 server:
   port: 9000
+  compression:
+    enabled: true
+    min-response-size: 512
 spring:
-  kafka:
-    bootstrap-servers:  127.0.0.1:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-    consumer:
-      group-id: iot-gateway-1
+#  kafka:
+#    bootstrap-servers: 127.0.0.1:9092
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#    consumer:
+#      group-id: iot-gateway-1
   redis:
     enable: true
     host: 127.0.0.1
     port: 6379
     timeout: 30000
+
+# 网关配置
+gateway:
+  enable: true
+  access-type: tcp
+  port: 30000
+  up:
+    event-dispatch:
+      - type: kafka
+        topic: {
+          connect: "connect", #连接
+          send: "send",#发送
+          receive: "receive",#接收
+          close: "close",#关闭
+          online: "上线",#上线
+          offline: "offline" #下线
+        }
+      - type: redis
+        topic: {
+          default: "root" # default为默认分发路径
+        }
+    data-dispatch:
+      type: kafka
+      topic: {
+        default: "root"
+      }
+  down:
+    type: kafka
+    topic: send_down
+  protocol: none4
 logging:
   level:
-    com.jfeng.gateway: info
+    com.jfeng.gateway*: debug

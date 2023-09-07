@@ -12,7 +12,7 @@ import javax.annotation.Resource;
 /**
  * kafka处理分发数据
  */
-@Component
+@Component()
 @ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
 public class KafkaDispatcher implements Dispatcher {
     @Resource

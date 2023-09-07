@@ -23,9 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.net.UnknownHostException;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,82 +39,46 @@ import java.util.concurrent.atomic.AtomicLong;
 @Setter
 @Component
 public class TcpServer implements Server, SessionListener {
-    ServerBootstrap bootstrap = new ServerBootstrap();
-    EventLoopGroup bossGroup = new NioEventLoopGroup();
-    EventLoopGroup workerGroup = new NioEventLoopGroup();
-
-    @Resource
-    List<SessionListener> sessionListeners;
     @Resource
     Dispatcher dispatcher;
+
     @Resource
     RedisUtils redisUtils;
 
     String localAddress;
-    //TODO 协议code和handler处理器之间的联系及约束
     String protocol;
 
     private static final String WAIT_TO_SEND = "IOT:WAIT_TO_SEND";
     private static final String WAIT_TO_ACK = "IOT:WAIT_TO_ACK";
     private static final String SENT = "IOT:SENT";
-
     private static final String WAIT_TO_SEND_KAFKA = "IOT:WAIT_TO_SEND_KAFKA";
+
+    private volatile boolean isRunning = true;
+    private int loginTimeout;//登陆超时
+    private int heartTimeout;//心跳超时
+    private int timeoutCheckInterval = 1000;//检测周期
+    private int checkPeriod = 1000;//检测周期
+
+    private boolean allowMultiSocketPerDevice = false;//是否需要单设备多连接，如双卡设备
+    private Map<String, TcpSession> connected = new ConcurrentHashMap<>();//已连接集合
+    private Map<String, TcpSession> onLines = new ConcurrentHashMap<>();//已在线集合
+    private Map<String, List<TcpSession>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
+
+    private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
+    private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
+    private BlockingQueue<String> haveWaitToSend = new LinkedBlockingQueue<>(100);//有要发送的数据的设备Id
+
+    private AtomicInteger totalConnectNum = new AtomicInteger(0);//总连接次数
+    private AtomicInteger totalCloseNum = new AtomicInteger(0);//总关闭次数
+    private AtomicLong totalSendPackets = new AtomicLong(0L);//总发送包数量
+    private AtomicLong totalSendBytes = new AtomicLong(0L);//总发送字节数
+    private AtomicLong totalReceivePackets = new AtomicLong(0L);//总接收包数量
+    private AtomicLong totalReceiveBytes = new AtomicLong(0L);//总接收字节数
 
     @Override
     public void init(Map<String, String> parameters) {
-        try {
-            localAddress = Utils.getLocalIp();
-        } catch (UnknownHostException e) {
-
-        }
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("连接明细")).submit(() -> {
-            while (isRunning) {
-                try {
-                    //TODO 维护历史连接明细
-                    ConnectDetail connectDetail = connectDetails.take();
-
-                } catch (Exception e) {
-                    log.warn("在线列表存储异常：", e);
-                }
-            }
-        });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("设备在线")).submit(() -> {
-            while (isRunning) {
-                try {
-                    StateChangeEvent event = stateChangeEvent.take();
-                    TcpSession tcpSession = event.session;
-
-                    String onlineKey = "iot:" + tcpSession.getLocalAddress() + ":online:" + tcpSession.getPacketId();
-                    String mappingKey = Constant.ONLINE_MAPPING + tcpSession.getPacketId();
-
-                    Map<String, String> oldOnlineInfo;
-                    //1. 维护上一次因为异常未保存的历史连接信息
-                    if (redisUtils.hasKey(onlineKey) && ((oldOnlineInfo = redisUtils.entries(onlineKey)) != null)) {
-                        LocalDateTime createTime = DateTimeUtils2.parse(oldOnlineInfo.get(Constant.ONLINE_INFO_CREATE_TIME), "yyyy-MM-dd HH:mm:ss");
-                        LocalDateTime endTime = event.state == 1 ? DateTimeUtils2.parse(oldOnlineInfo.get(Constant.ONLINE_INFO_LAST_REFRESH_TIME), "yyyy-MM-dd HH:mm:ss") : LocalDateTime.now();
-                        long totalMill = Duration.between(endTime, createTime).getSeconds();
-
-                        oldOnlineInfo.put(Constant.ONLINE_INFO_TOTAL_MILL, String.valueOf(totalMill));
-                        connectDetails.offer(new ConnectDetail(oldOnlineInfo));
-                    }
-                    //2. 维护映射关系
-                    if (event.state == 1) {
-                        String connectKey = Constant.SYSTEM_PREFIX + tcpSession.getTcpServer().getLocalAddress() + ":connect:" + tcpSession.getRemoteAddress();
-                        redisUtils.delete(connectKey);
-
-                        Map<String, String> mapping = new HashMap<>();
-                        mapping.put(Constant.MACHINE, tcpSession.getLocalAddress());
-                        mapping.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-                        redisUtils.putAll(mappingKey, mapping);
-                    } else {
-                        redisUtils.delete(mappingKey);
-                    }
-                } catch (Exception e) {
-                    log.warn("在线列表存储异常：", e);
-                }
-            }
-        });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("心跳超时检测")).submit(() -> {
+        localAddress = Utils.getLocalIp();
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("超时检测")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
                     //1.移除所有已关闭连接、登录超时连接
@@ -158,23 +119,23 @@ public class TcpServer implements Server, SessionListener {
                 }
             }
         });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("总流量统计")).submit(() -> {
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("流量统计")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
                     Map<String, String> hashValue = new HashMap<>();
                     hashValue.put(Constant.ONLINE, String.valueOf(onLines.size()));
                     hashValue.put(Constant.CONNECTED, String.valueOf(connected.size()));
-                    hashValue.put(Constant.TOTAL_CONNECT_NUM, String.valueOf(totalConnectNum));
-                    hashValue.put(Constant.TOTAL_CLOSE_NUM, String.valueOf(totalCloseNum));
-                    hashValue.put(Constant.TOTAL_SEND_PACKETS, String.valueOf(totalSendPackets));
-                    hashValue.put(Constant.TOTAL_SEND_BYTES, String.valueOf(totalSendBytes));
-                    hashValue.put(Constant.TOTAL_RECEIVE_PACKETS, String.valueOf(totalReceivePackets));
-                    hashValue.put(Constant.TOTAL_RECEIVE_BYTES, String.valueOf(totalReceiveBytes));
-                    hashValue.put(Constant.LAST_REFRESH_TIME, DateTimeUtils2.outNow());
+                    hashValue.put(Constant.SERVER_CONNECT_NUM, String.valueOf(totalConnectNum));
+                    hashValue.put(Constant.SERVER_CLOSE_NUM, String.valueOf(totalCloseNum));
+                    hashValue.put(Constant.SERVER_SEND_PACKETS, String.valueOf(totalSendPackets));
+                    hashValue.put(Constant.SERVER_SEND_BYTES, String.valueOf(totalSendBytes));
+                    hashValue.put(Constant.SERVER_RECEIVE_PACKETS, String.valueOf(totalReceivePackets));
+                    hashValue.put(Constant.SERVER_RECEIVE_BYTES, String.valueOf(totalReceiveBytes));
+                    hashValue.put(Constant.SERVER_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
 
                     redisUtils.putAll(Constant.SYSTEM_PREFIX + localAddress + ":summary", hashValue);
                 } catch (Exception e) {
-                    log.warn("总流量统计", e);
+                    log.warn("流量统计", e);
                 } finally {
                     try {
                         Thread.sleep(checkPeriod);
@@ -224,7 +185,7 @@ public class TcpServer implements Server, SessionListener {
     }
 
     public void sendWaitToSend(TcpSession session) throws Exception {
-        String deviceId = session.getPacketId();
+        String deviceId = session.getDeviceId();
         //1. 待确认队列
         while (session.getSessionStatus() != SessionStatus.CLOSED && redisUtils.rightPopAndLeftPush(WAIT_TO_ACK + deviceId, WAIT_TO_SEND + deviceId) != null) {
             Thread.sleep(1);
@@ -248,6 +209,11 @@ public class TcpServer implements Server, SessionListener {
             Thread.sleep(1);
         }
     }
+
+
+    ServerBootstrap bootstrap = new ServerBootstrap();
+    EventLoopGroup bossGroup = new NioEventLoopGroup();
+    EventLoopGroup workerGroup = new NioEventLoopGroup();
 
     @Override
     public void start() throws Exception {
@@ -299,28 +265,6 @@ public class TcpServer implements Server, SessionListener {
         return null;
     }
 
-    private volatile boolean isRunning = true;
-    private int loginTimeout;//登陆超时
-    private int heartTimeout;//心跳超时
-    private int timeoutCheckInterval;//检测周期
-    private int checkPeriod;//检测周期
-
-    private boolean allowMultiSocketPerDevice = false;//是否需要单设备多连接，如双卡设备
-    private Map<String, TcpSession> connected = new ConcurrentHashMap<>();//已连接集合
-    private Map<String, TcpSession> onLines = new ConcurrentHashMap<>();//已在线集合
-    private Map<String, List<TcpSession>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
-
-    private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
-    private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
-    private BlockingQueue<String> haveWaitToSend = new LinkedBlockingQueue<>(100);//有要发送的数据的设备Id
-
-    private AtomicInteger totalConnectNum = new AtomicInteger(0);//总连接次数
-    private AtomicInteger totalCloseNum = new AtomicInteger(0);//总关闭次数
-    private AtomicLong totalSendPackets = new AtomicLong(0L);//总发送包数量
-    private AtomicLong totalSendBytes = new AtomicLong(0L);//总发送字节数
-    private AtomicLong totalReceivePackets = new AtomicLong(0L);//总接收包数量
-    private AtomicLong totalReceiveBytes = new AtomicLong(0L);//总接收字节数
-
     @Override
     public void onConnect(TcpSession tcpSession) {
         String channelId = tcpSession.getChannelId();
@@ -353,9 +297,9 @@ public class TcpServer implements Server, SessionListener {
     public void onDisConnect(TcpSession tcpSession, String reason) {
         totalCloseNum.getAndIncrement();
 
-        String packetId = tcpSession.getPacketId();
+        String deviceId = tcpSession.getDeviceId();
         //未登录连接
-        if (StringUtils.isEmpty(packetId)) {
+        if (StringUtils.isEmpty(deviceId)) {
             TcpSession removed = connected.remove(tcpSession.getLocalAddress());
             if (removed != null) {
                 Offline(removed, reason);
@@ -363,10 +307,10 @@ public class TcpServer implements Server, SessionListener {
         }
         //已登录连接
         else {
-            TcpSession removed = onLines.remove(packetId);
+            TcpSession removed = onLines.remove(deviceId);
             if (removed != null) {
                 Offline(removed, reason);
-            }else{
+            } else {
 
             }
         }
@@ -378,26 +322,25 @@ public class TcpServer implements Server, SessionListener {
             log.warn("移除连接会话失败");
         }
 
-        String packetId = tcpSession.getPacketId();
+        String deviceId = tcpSession.getDeviceId();
 
-        if (this.onLines.containsKey(packetId) == false) {
-            this.onLines.put(packetId, tcpSession);
+        if (this.onLines.containsKey(deviceId) == false) {
+            this.onLines.put(deviceId, tcpSession);
         } else {
             if (allowMultiSocketPerDevice) {
-                if (this.onLinesSpare.containsKey(packetId) == false) {
-                    this.onLinesSpare.put(packetId, new ArrayList<>());
+                if (this.onLinesSpare.containsKey(deviceId) == false) {
+                    this.onLinesSpare.put(deviceId, new ArrayList<>());
                 }
-                this.onLinesSpare.get(packetId).add(tcpSession);
+                this.onLinesSpare.get(deviceId).add(tcpSession);
             } else {
-                this.onLines.get(packetId).close("重复登陆");
+                this.onLines.get(deviceId).close("重复登陆");
             }
         }
-        stateChangeEvent.offer(new StateChangeEvent(tcpSession, 1));
     }
 
     @Override
     public void Offline(TcpSession tcpSession, String message) {
-        stateChangeEvent.offer(new StateChangeEvent(tcpSession, 0));
+
     }
 
     /**
@@ -415,7 +358,7 @@ public class TcpServer implements Server, SessionListener {
 
     public void loadKafkaData(TcpSession session) {
         String element = null;
-        while (session.getSessionStatus() != SessionStatus.CLOSED && (element = redisUtils.rightPop(WAIT_TO_ACK + session.getPacketId())) != null) {
+        while (session.getSessionStatus() != SessionStatus.CLOSED && (element = redisUtils.rightPop(WAIT_TO_ACK + session.getDeviceId())) != null) {
             this.fromKafka(element);
         }
     }

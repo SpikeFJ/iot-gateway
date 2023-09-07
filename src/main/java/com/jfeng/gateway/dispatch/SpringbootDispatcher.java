@@ -2,6 +2,7 @@ package com.jfeng.gateway.dispatch;
 
 import com.jfeng.gateway.message.DispatchMessage;
 import org.springframework.beans.BeansException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
@@ -9,7 +10,8 @@ import org.springframework.stereotype.Component;
 /**
  * springboot处理接收数据
  */
-@Component
+@Component()
+@ConditionalOnMissingBean(KafkaDispatcher.class)
 public class SpringbootDispatcher implements Dispatcher, ApplicationContextAware {
     private ApplicationContext applicationContext;
 

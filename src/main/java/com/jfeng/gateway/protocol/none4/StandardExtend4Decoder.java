@@ -53,7 +53,7 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
                 return protocol4;
             }
 
-            session.getTcpServer().dispatch(session.getPacketId(), ByteBufUtil.hexDump(byteBuf));
+            session.getTcpServer().dispatch(session.getDeviceId(), ByteBufUtil.hexDump(byteBuf));
 
         } catch (Exception e) {
             log.warn("decode", e);

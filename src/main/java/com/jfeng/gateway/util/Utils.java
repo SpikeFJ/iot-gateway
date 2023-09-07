@@ -3,7 +3,6 @@ package com.jfeng.gateway.util;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.util.Map;
 
 public class Utils {
@@ -12,10 +11,14 @@ public class Utils {
         return getIp(inetSocketAddress) + ":" + getPort(inetSocketAddress);
     }
 
-    public static String getLocalIp() throws UnknownHostException {
-        final InetAddress localHost = InetAddress.getLocalHost();
-        final String hostAddress = localHost.getHostAddress();
-        return hostAddress;
+    public static String getLocalIp()  {
+        try{
+            final InetAddress localHost = InetAddress.getLocalHost();
+            final String hostAddress = localHost.getHostAddress();
+            return hostAddress;
+        }catch (Exception e){
+            return "UNKNOW";
+        }
     }
 
     public static String getIp(InetSocketAddress inetSocketAddress) {
