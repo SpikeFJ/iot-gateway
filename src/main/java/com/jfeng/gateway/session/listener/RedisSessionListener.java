@@ -2,6 +2,7 @@ package com.jfeng.gateway.session.listener;
 
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
+import com.jfeng.gateway.server.TcpServer;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.DateTimeUtils2;
@@ -35,10 +36,13 @@ public class RedisSessionListener implements SessionListener {
     @Resource
     private RedisUtils redisUtils;
 
+    @Resource
+    private TcpServer tcpServer;
+
     @PostConstruct
     private void init() {
         isRunning = true;
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("连接明细")).submit(() -> {
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("历史连接明细")).submit(() -> {
             while (isRunning) {
                 try {
                     //TODO 维护历史连接明细
@@ -49,7 +53,7 @@ public class RedisSessionListener implements SessionListener {
                 }
             }
         });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("设备在线")).submit(() -> {
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("当前设备在线")).submit(() -> {
             while (isRunning) {
                 try {
                     StateChangeEvent event = stateChangeEvent.take();
@@ -82,6 +86,32 @@ public class RedisSessionListener implements SessionListener {
                     }
                 } catch (Exception e) {
                     log.warn("在线列表存储异常：", e);
+                }
+            }
+        });
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("机器流量统计")).submit(() -> {
+            while (isRunning && !Thread.currentThread().isInterrupted()) {
+                try {
+                    Map<String, String> hashValue = new HashMap<>();
+                    hashValue.put(Constant.ONLINE, String.valueOf(tcpServer.getOnLines().size()));
+                    hashValue.put(Constant.CONNECTED, String.valueOf(tcpServer.getConnected().size()));
+                    hashValue.put(Constant.SERVER_CONNECT_NUM, String.valueOf(tcpServer.getTotalConnectNum()));
+                    hashValue.put(Constant.SERVER_CLOSE_NUM, String.valueOf(tcpServer.getTotalCloseNum()));
+                    hashValue.put(Constant.SERVER_SEND_PACKETS, String.valueOf(tcpServer.getTotalSendPackets()));
+                    hashValue.put(Constant.SERVER_SEND_BYTES, String.valueOf(tcpServer.getTotalSendBytes()));
+                    hashValue.put(Constant.SERVER_RECEIVE_PACKETS, String.valueOf(tcpServer.getTotalReceivePackets()));
+                    hashValue.put(Constant.SERVER_RECEIVE_BYTES, String.valueOf(tcpServer.getTotalReceiveBytes()));
+                    hashValue.put(Constant.SERVER_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
+
+                    redisUtils.putAll(Constant.SYSTEM_PREFIX + tcpServer.getLocalAddress() + ":summary", hashValue);
+                } catch (Exception e) {
+                    log.warn("流量统计", e);
+                } finally {
+                    try {
+                        Thread.sleep(tcpServer.getCheckPeriod());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         });

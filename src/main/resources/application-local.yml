@@ -4,13 +4,13 @@ server:
     enabled: true
     min-response-size: 512
 spring:
-#  kafka:
-#    bootstrap-servers: 127.0.0.1:9092
-#    producer:
-#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-#    consumer:
-#      group-id: iot-gateway-1
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: iot-gateway-1
   redis:
     enable: true
     host: 127.0.0.1

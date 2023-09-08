@@ -2,22 +2,19 @@ package com.jfeng.gateway;
 
 import com.jfeng.gateway.config.GateWayConfig;
 import com.jfeng.gateway.server.TcpServer;
-import com.jfeng.gateway.session.SessionListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import javax.annotation.Resource;
-import java.util.List;
 
 @SpringBootApplication
 @Slf4j
 public class GatewayApplication implements CommandLineRunner {
     @Resource
     public GateWayConfig config;
-    @Resource
-    public List<SessionListener> sessionListener;
+
     @Resource
     public TcpServer tcpServer;
 

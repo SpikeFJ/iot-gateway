@@ -2,17 +2,15 @@ package com.jfeng.gateway.dispatch;
 
 import com.jfeng.gateway.message.DispatchMessage;
 import org.springframework.beans.BeansException;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
- * springboot处理接收数据
+ * 默认数据分发器(采用springboot内部广播方式)
  */
-@Component()
-@ConditionalOnMissingBean(KafkaDispatcher.class)
-public class SpringbootDispatcher implements Dispatcher, ApplicationContextAware {
+@Component
+public class DefaultDispatcher implements Dispatcher, ApplicationContextAware {
     private ApplicationContext applicationContext;
 
     @Override

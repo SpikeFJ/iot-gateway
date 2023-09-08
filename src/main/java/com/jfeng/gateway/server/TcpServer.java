@@ -1,6 +1,5 @@
 package com.jfeng.gateway.server;
 
-import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
 import com.jfeng.gateway.dispatch.Dispatcher;
 import com.jfeng.gateway.message.CommandReq;
@@ -23,7 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -64,8 +66,6 @@ public class TcpServer implements Server, SessionListener {
     private Map<String, TcpSession> onLines = new ConcurrentHashMap<>();//已在线集合
     private Map<String, List<TcpSession>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
 
-    private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
-    private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
     private BlockingQueue<String> haveWaitToSend = new LinkedBlockingQueue<>(100);//有要发送的数据的设备Id
 
     private AtomicInteger totalConnectNum = new AtomicInteger(0);//总连接次数
@@ -115,32 +115,6 @@ public class TcpServer implements Server, SessionListener {
                         Thread.sleep(timeoutCheckInterval);
                     } catch (InterruptedException e) {
                         log.warn("超时检测休眠异常：", e);
-                    }
-                }
-            }
-        });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("流量统计")).submit(() -> {
-            while (isRunning && !Thread.currentThread().isInterrupted()) {
-                try {
-                    Map<String, String> hashValue = new HashMap<>();
-                    hashValue.put(Constant.ONLINE, String.valueOf(onLines.size()));
-                    hashValue.put(Constant.CONNECTED, String.valueOf(connected.size()));
-                    hashValue.put(Constant.SERVER_CONNECT_NUM, String.valueOf(totalConnectNum));
-                    hashValue.put(Constant.SERVER_CLOSE_NUM, String.valueOf(totalCloseNum));
-                    hashValue.put(Constant.SERVER_SEND_PACKETS, String.valueOf(totalSendPackets));
-                    hashValue.put(Constant.SERVER_SEND_BYTES, String.valueOf(totalSendBytes));
-                    hashValue.put(Constant.SERVER_RECEIVE_PACKETS, String.valueOf(totalReceivePackets));
-                    hashValue.put(Constant.SERVER_RECEIVE_BYTES, String.valueOf(totalReceiveBytes));
-                    hashValue.put(Constant.SERVER_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-
-                    redisUtils.putAll(Constant.SYSTEM_PREFIX + localAddress + ":summary", hashValue);
-                } catch (Exception e) {
-                    log.warn("流量统计", e);
-                } finally {
-                    try {
-                        Thread.sleep(checkPeriod);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
                     }
                 }
             }
@@ -398,33 +372,5 @@ public class TcpServer implements Server, SessionListener {
 
     public void notify(String deviceId) {
         haveWaitToSend.offer(deviceId);
-    }
-
-    /**
-     * 连接状态切换通知
-     */
-    class StateChangeEvent {
-        /**
-         * 0:下线 1：上线
-         */
-        private int state;
-        TcpSession session;
-
-        public StateChangeEvent(TcpSession session, int state) {
-            this.session = session;
-            this.state = state;
-        }
-    }
-
-    /**
-     * 连接明细
-     */
-    class ConnectDetail {
-
-        Map<String, String> connectInfo;
-
-        public ConnectDetail(Map<String, String> connectInfo) {
-            this.connectInfo = connectInfo;
-        }
     }
 }
