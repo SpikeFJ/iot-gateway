@@ -1,11 +1,11 @@
 package com.jfeng.gateway.config;
 
-import com.jfeng.gateway.dispatch.Dispatcher;
+import com.jfeng.gateway.dispatch.DataDispatcher;
 import org.springframework.context.annotation.Bean;
 
 public class RedisConfig {
     @Bean
-    public Dispatcher dispatcher(){
+    public DataDispatcher dispatcher(){
         return null;
     }
 }

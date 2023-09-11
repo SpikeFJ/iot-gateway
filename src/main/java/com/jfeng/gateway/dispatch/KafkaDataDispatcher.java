@@ -16,7 +16,7 @@ import javax.annotation.Resource;
 @Component
 @ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
 @Primary
-public class KafkaDispatcher implements Dispatcher {
+public class KafkaDataDispatcher implements DataDispatcher {
     @Resource
     private KafkaTemplate kafkaTemplate;
 

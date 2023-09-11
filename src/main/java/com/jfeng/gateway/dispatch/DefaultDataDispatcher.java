@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * 默认数据分发器(采用springboot内部广播方式)
  */
 @Component
-public class DefaultDispatcher implements Dispatcher, ApplicationContextAware {
+public class DefaultDataDispatcher implements DataDispatcher, ApplicationContextAware {
     private ApplicationContext applicationContext;
 
     @Override

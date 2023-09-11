@@ -1,7 +1,8 @@
 package com.jfeng.gateway.server;
 
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
-import com.jfeng.gateway.dispatch.Dispatcher;
+import com.jfeng.gateway.dispatch.DataDispatcher;
+import com.jfeng.gateway.dispatch.ServerInfoDispatcher;
 import com.jfeng.gateway.message.CommandReq;
 import com.jfeng.gateway.message.DispatchMessage;
 import com.jfeng.gateway.protocol.none4.*;
@@ -42,7 +43,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class TcpServer implements Server, SessionListener {
     @Resource
-    Dispatcher dispatcher;
+    DataDispatcher dataDispatcher;
+    @Resource
+    ServerInfoDispatcher serverInfoDispatcher;
 
     @Resource
     RedisUtils redisUtils;
@@ -119,6 +122,22 @@ public class TcpServer implements Server, SessionListener {
                 }
             }
         });
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("机器流量统计")).submit(() -> {
+            while (isRunning && !Thread.currentThread().isInterrupted()) {
+                try {
+                    serverInfoDispatcher.dispatch(this);
+                } catch (Exception e) {
+                    log.warn("机器流量统计", e);
+                } finally {
+                    try {
+                        Thread.sleep(getCheckPeriod());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("同步下发")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
@@ -324,7 +343,7 @@ public class TcpServer implements Server, SessionListener {
      * @param hexData
      */
     public void dispatch(String packetId, String hexData) {
-        dispatcher.sendNext(packetId, new DispatchMessage(protocol, hexData, localAddress));
+        dataDispatcher.sendNext(packetId, new DispatchMessage(protocol, hexData, localAddress));
     }
 
     private BlockingQueue<CommandReq> waitToSendFromKafka = new LinkedBlockingQueue<>(10000);
