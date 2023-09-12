@@ -61,5 +61,5 @@ public interface SessionListener extends EventListener {
      * @param tcpSession 客户端channel
      * @param message    下线原因
      */
-    void Offline(TcpSession tcpSession, String message);
+    void offline(TcpSession tcpSession, String message);
 }

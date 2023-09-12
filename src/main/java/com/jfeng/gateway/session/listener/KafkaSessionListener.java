@@ -7,6 +7,8 @@ import com.jfeng.gateway.util.JsonUtils;
 import io.netty.buffer.ByteBufUtil;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +23,8 @@ import java.util.Map;
 @Component
 @Setter
 @Slf4j
+@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
+@Primary
 public class KafkaSessionListener implements SessionListener {
     private final String CONNECT = "connect";
     private final String SEND = "send";
@@ -90,7 +94,7 @@ public class KafkaSessionListener implements SessionListener {
     }
 
     @Override
-    public void Offline(TcpSession tcpSession, String reason) {
+    public void offline(TcpSession tcpSession, String reason) {
         String topic = topics.getOrDefault(OFFLINE, DEFAULT);
         EventMessage eventMessage = EventMessage.createOnline(tcpSession.getDeviceId(), tcpSession.getLocalAddress());
 

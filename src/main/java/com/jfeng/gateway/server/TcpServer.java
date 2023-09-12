@@ -6,6 +6,7 @@ import com.jfeng.gateway.dispatch.ServerInfoDispatcher;
 import com.jfeng.gateway.message.CommandReq;
 import com.jfeng.gateway.message.DispatchMessage;
 import com.jfeng.gateway.protocol.none4.*;
+import com.jfeng.gateway.session.ProxySessionListener;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.SessionStatus;
 import com.jfeng.gateway.session.TcpSession;
@@ -20,6 +21,7 @@ import io.netty.util.ResourceLeakDetector;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -41,10 +43,11 @@ import java.util.concurrent.atomic.AtomicLong;
 @Getter
 @Setter
 @Component
-public class TcpServer implements Server, SessionListener {
+public class TcpServer extends ProxySessionListener implements Server {
     @Resource
     DataDispatcher dataDispatcher;
-    @Resource
+
+    @Autowired(required = false)
     ServerInfoDispatcher serverInfoDispatcher;
 
     @Resource
@@ -78,9 +81,18 @@ public class TcpServer implements Server, SessionListener {
     private AtomicLong totalReceivePackets = new AtomicLong(0L);//总接收包数量
     private AtomicLong totalReceiveBytes = new AtomicLong(0L);//总接收字节数
 
+    public void addListener(List<SessionListener> listeners) {
+        for (SessionListener listener : listeners) {
+            if (listener.equals(this) == false) {
+                this.getChildListeners().add(listener);
+            }
+        }
+    }
+
     @Override
     public void init(Map<String, String> parameters) {
         localAddress = Utils.getLocalIp();
+
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("超时检测")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {
@@ -88,11 +100,18 @@ public class TcpServer implements Server, SessionListener {
                     Iterator<Map.Entry<String, TcpSession>> iterConnected = connected.entrySet().iterator();
                     while (iterConnected.hasNext()) {
                         TcpSession value = iterConnected.next().getValue();
-                        if (value == null || value.getSessionStatus() == SessionStatus.CLOSED) {
+                        if (value == null) {
                             iterConnected.remove();
                         } else if (value.getSessionStatus() == SessionStatus.CONNECTED) {
                             if (loginTimeout > 0 && timeOut(value.getCreateTime(), loginTimeout)) {
                                 value.close("登陆超时,超时间隔：" + loginTimeout / 1000 + "s. 连接创建时间:" + DateTimeUtils.outEpochMilli(value.getCreateTime()));
+                            }
+                        }
+                        if (loginTimeout > 0) {
+                            if (value.getSessionStatus() == SessionStatus.CONNECTED && timeOut(value.getCreateTime(), loginTimeout)) {
+                                if (loginTimeout > 0 && timeOut(value.getCreateTime(), loginTimeout)) {
+                                    value.close("登陆超时,超时间隔：" + loginTimeout / 1000 + "s. 连接创建时间:" + DateTimeUtils.outEpochMilli(value.getCreateTime()));
+                                }
                             }
                         }
                     }
@@ -122,21 +141,23 @@ public class TcpServer implements Server, SessionListener {
                 }
             }
         });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("机器流量统计")).submit(() -> {
-            while (isRunning && !Thread.currentThread().isInterrupted()) {
-                try {
-                    serverInfoDispatcher.dispatch(this);
-                } catch (Exception e) {
-                    log.warn("机器流量统计", e);
-                } finally {
+        if (serverInfoDispatcher != null) {
+            Executors.newSingleThreadExecutor(new ThreadFactoryImpl("机器流量统计")).submit(() -> {
+                while (isRunning && !Thread.currentThread().isInterrupted()) {
                     try {
-                        Thread.sleep(getCheckPeriod());
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        serverInfoDispatcher.dispatch(this);
+                    } catch (Exception e) {
+                        log.warn("机器流量统计", e);
+                    } finally {
+                        try {
+                            Thread.sleep(getCheckPeriod());
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("同步下发")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
@@ -203,7 +224,6 @@ public class TcpServer implements Server, SessionListener {
         }
     }
 
-
     ServerBootstrap bootstrap = new ServerBootstrap();
     EventLoopGroup bossGroup = new NioEventLoopGroup();
     EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -267,12 +287,16 @@ public class TcpServer implements Server, SessionListener {
         }
         totalConnectNum.getAndIncrement();
         connected.putIfAbsent(channelId, tcpSession);
+
+        super.onConnect(tcpSession);
     }
 
     @Override
     public void onReceive(TcpSession tcpSession, byte[] data) {
         totalReceiveBytes.getAndIncrement();
         totalReceivePackets.getAndAdd(data.length);
+
+        super.onReceive(tcpSession, data);
     }
 
     @Override
@@ -284,6 +308,8 @@ public class TcpServer implements Server, SessionListener {
     public void onSend(TcpSession tcpSession, byte[] data) {
         totalSendPackets.getAndIncrement();
         totalSendBytes.getAndAdd(data.length);
+
+        super.onSend(tcpSession, data);
     }
 
     @Override
@@ -295,18 +321,20 @@ public class TcpServer implements Server, SessionListener {
         if (StringUtils.isEmpty(deviceId)) {
             TcpSession removed = connected.remove(tcpSession.getLocalAddress());
             if (removed != null) {
-                Offline(removed, reason);
+                offline(removed, reason);
             }
         }
         //已登录连接
         else {
             TcpSession removed = onLines.remove(deviceId);
             if (removed != null) {
-                Offline(removed, reason);
+                offline(removed, reason);
             } else {
 
             }
         }
+
+        super.onDisConnect(tcpSession, reason);
     }
 
     @Override
@@ -329,11 +357,13 @@ public class TcpServer implements Server, SessionListener {
                 this.onLines.get(deviceId).close("重复登陆");
             }
         }
+
+        super.online(tcpSession);
     }
 
     @Override
-    public void Offline(TcpSession tcpSession, String message) {
-
+    public void offline(TcpSession tcpSession, String message) {
+        super.offline(tcpSession, message);
     }
 
     /**

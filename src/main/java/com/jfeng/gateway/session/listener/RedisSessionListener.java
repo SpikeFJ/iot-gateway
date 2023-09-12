@@ -8,6 +8,8 @@ import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.RedisUtils;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -27,6 +29,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Component
 @Setter
 @Slf4j
+@ConditionalOnProperty(name = "spring.redis")
+@Primary
 public class RedisSessionListener implements SessionListener {
     private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
     private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
@@ -148,7 +152,7 @@ public class RedisSessionListener implements SessionListener {
     }
 
     @Override
-    public void Offline(TcpSession tcpSession, String message) {
+    public void offline(TcpSession tcpSession, String message) {
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, DeviceStatus.OFFLINE));
     }
 
