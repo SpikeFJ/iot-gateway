@@ -1,16 +1,23 @@
 package com.jfeng.gateway.server;
 
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
-import com.jfeng.gateway.dispatch.DataDispatcher;
-import com.jfeng.gateway.dispatch.ServerInfoDispatcher;
-import com.jfeng.gateway.message.CommandReq;
+import com.jfeng.gateway.down.CommandReq;
+import com.jfeng.gateway.down.CommandResp;
+import com.jfeng.gateway.down.DownInfoSaveStrategy;
 import com.jfeng.gateway.message.DispatchMessage;
-import com.jfeng.gateway.protocol.none4.*;
+import com.jfeng.gateway.protocol.IpFilterHandler;
+import com.jfeng.gateway.protocol.none4.LoginHandler;
+import com.jfeng.gateway.protocol.none4.StandardExtend4Decoder;
+import com.jfeng.gateway.protocol.none4.StandardProtocol4Encoder;
+import com.jfeng.gateway.protocol.none4.StatisticsHandler;
 import com.jfeng.gateway.session.ProxySessionListener;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.SessionStatus;
 import com.jfeng.gateway.session.TcpSession;
-import com.jfeng.gateway.util.*;
+import com.jfeng.gateway.up.dispatch.DataDispatcher;
+import com.jfeng.gateway.up.dispatch.ServerInfoDispatcher;
+import com.jfeng.gateway.util.DateTimeUtils;
+import com.jfeng.gateway.util.Utils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.*;
@@ -50,16 +57,11 @@ public class TcpServer extends ProxySessionListener implements Server {
     @Autowired(required = false)
     ServerInfoDispatcher serverInfoDispatcher;
 
-    @Resource
-    RedisUtils redisUtils;
+    @Autowired(required = false)
+    DownInfoSaveStrategy downInfoSave;
 
     String localAddress;
     String protocol;
-
-    private static final String WAIT_TO_SEND = "IOT:WAIT_TO_SEND";
-    private static final String WAIT_TO_ACK = "IOT:WAIT_TO_ACK";
-    private static final String SENT = "IOT:SENT";
-    private static final String WAIT_TO_SEND_KAFKA = "IOT:WAIT_TO_SEND_KAFKA";
 
     private volatile boolean isRunning = true;
     private int loginTimeout;//登陆超时
@@ -72,14 +74,15 @@ public class TcpServer extends ProxySessionListener implements Server {
     private Map<String, TcpSession> onLines = new ConcurrentHashMap<>();//已在线集合
     private Map<String, List<TcpSession>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
 
-    private BlockingQueue<String> haveWaitToSend = new LinkedBlockingQueue<>(100);//有要发送的数据的设备Id
-
     private AtomicInteger totalConnectNum = new AtomicInteger(0);//总连接次数
     private AtomicInteger totalCloseNum = new AtomicInteger(0);//总关闭次数
     private AtomicLong totalSendPackets = new AtomicLong(0L);//总发送包数量
     private AtomicLong totalSendBytes = new AtomicLong(0L);//总发送字节数
     private AtomicLong totalReceivePackets = new AtomicLong(0L);//总接收包数量
     private AtomicLong totalReceiveBytes = new AtomicLong(0L);//总接收字节数
+
+    private BlockingQueue<CommandReq> syncWaitToSend = new LinkedBlockingQueue<>(100);
+    private Map<String, Map<String, CommandReq>> synSent = new ConcurrentHashMap<>();
 
     public void addListener(List<SessionListener> listeners) {
         for (SessionListener listener : listeners) {
@@ -141,6 +144,28 @@ public class TcpServer extends ProxySessionListener implements Server {
                 }
             }
         });
+        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("下发发送")).submit(() -> {
+            while (isRunning && !Thread.currentThread().isInterrupted()) {
+                try {
+                    CommandReq req = this.syncWaitToSend.take();
+
+                    TcpSession session = this.get(req.getDeviceId());
+                    session.send(ByteBufUtil.decodeHexDump(req.getData()), true);
+
+                    if (downInfoSave != null) {
+                        downInfoSave.storeSending(req);
+                    }
+                } catch (Exception e) {
+                    log.warn("下发发送", e);
+                } finally {
+                    try {
+                        Thread.sleep(checkPeriod);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
         if (serverInfoDispatcher != null) {
             Executors.newSingleThreadExecutor(new ThreadFactoryImpl("机器流量统计")).submit(() -> {
                 while (isRunning && !Thread.currentThread().isInterrupted()) {
@@ -157,70 +182,6 @@ public class TcpServer extends ProxySessionListener implements Server {
                     }
                 }
             });
-        }
-
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("同步下发")).submit(() -> {
-            while (isRunning && !Thread.currentThread().isInterrupted()) {
-                try {
-                    String deviceId = haveWaitToSend.take();
-                    if (this.contains(deviceId)) {
-                        TcpSession session = this.get(deviceId);
-                        session.send();
-                    }
-                } catch (Exception e) {
-                    log.warn("下行检测", e);
-                } finally {
-                    try {
-                        Thread.sleep(checkPeriod);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("异步下发")).submit(() -> {
-            while (isRunning && !Thread.currentThread().isInterrupted()) {
-                try {
-                    CommandReq req = this.waitToSendFromKafka.take();
-
-                    TcpSession session = this.get(req.getDeviceId());
-                    session.send(ByteBufUtil.decodeHexDump(req.getData()), true);
-                } catch (Exception e) {
-                    log.warn("下行检测", e);
-                } finally {
-                    try {
-                        Thread.sleep(checkPeriod);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-    }
-
-    public void sendWaitToSend(TcpSession session) throws Exception {
-        String deviceId = session.getDeviceId();
-        //1. 待确认队列
-        while (session.getSessionStatus() != SessionStatus.CLOSED && redisUtils.rightPopAndLeftPush(WAIT_TO_ACK + deviceId, WAIT_TO_SEND + deviceId) != null) {
-            Thread.sleep(1);
-        }
-
-        //2.1 读取待发送最新元素
-        String toBeSend;
-        while (session.getSessionStatus() != SessionStatus.CLOSED && (toBeSend = redisUtils.rightPopAndLeftPush(WAIT_TO_SEND + deviceId, WAIT_TO_ACK + deviceId)) != null) {
-            CommandReq req = JsonUtils.deserialize(toBeSend, CommandReq.class);
-            req.setTryTimes(req.getTryTimes() + 1);
-
-            //2.2 发送
-            session.send(ByteBufUtil.decodeHexDump(req.getData()), true);
-
-            //2.3 移除确认
-            redisUtils.rightPop(WAIT_TO_ACK + deviceId);
-
-            //2.4 保持至已发送
-            redisUtils.put(SENT, req.getSendNo(), JsonUtils.serialize(req));
-
-            Thread.sleep(1);
         }
     }
 
@@ -264,16 +225,16 @@ public class TcpServer extends ProxySessionListener implements Server {
         return (System.currentTimeMillis() - time) > threshold;
     }
 
-    public boolean contains(String packetId) {
-        return onLines.containsKey(packetId) || onLinesSpare.containsKey(packetId);
+    public boolean contains(String deviceId) {
+        return onLines.containsKey(deviceId) || onLinesSpare.containsKey(deviceId);
     }
 
-    public TcpSession get(String packetId) {
-        if (onLines.containsKey(packetId)) {
-            return onLines.get(packetId);
+    public TcpSession get(String deviceId) {
+        if (onLines.containsKey(deviceId)) {
+            return onLines.get(deviceId);
         }
-        if (onLinesSpare.containsKey(packetId)) {
-            return onLinesSpare.get(packetId).get(0);
+        if (allowMultiSocketPerDevice && onLinesSpare.containsKey(deviceId)) {
+            return onLinesSpare.get(deviceId).get(0);
         }
         return null;
     }
@@ -316,24 +277,14 @@ public class TcpServer extends ProxySessionListener implements Server {
     public void onDisConnect(TcpSession tcpSession, String reason) {
         totalCloseNum.getAndIncrement();
 
-        String deviceId = tcpSession.getDeviceId();
-        //未登录连接
-        if (StringUtils.isEmpty(deviceId)) {
-            TcpSession removed = connected.remove(tcpSession.getLocalAddress());
+        if (tcpSession.getSessionStatus() == SessionStatus.CONNECTED) {
+            connected.remove(tcpSession.getChannelId());
+        } else if (tcpSession.getSessionStatus() == SessionStatus.LOGIN) {
+            TcpSession removed = onLines.remove(tcpSession.getDeviceId());
             if (removed != null) {
                 offline(removed, reason);
             }
         }
-        //已登录连接
-        else {
-            TcpSession removed = onLines.remove(deviceId);
-            if (removed != null) {
-                offline(removed, reason);
-            } else {
-
-            }
-        }
-
         super.onDisConnect(tcpSession, reason);
     }
 
@@ -361,11 +312,6 @@ public class TcpServer extends ProxySessionListener implements Server {
         super.online(tcpSession);
     }
 
-    @Override
-    public void offline(TcpSession tcpSession, String message) {
-        super.offline(tcpSession, message);
-    }
-
     /**
      * 数据分发
      *
@@ -376,50 +322,31 @@ public class TcpServer extends ProxySessionListener implements Server {
         dataDispatcher.sendNext(packetId, new DispatchMessage(protocol, hexData, localAddress));
     }
 
-    private BlockingQueue<CommandReq> waitToSendFromKafka = new LinkedBlockingQueue<>(10000);
-
-
-    public void loadKafkaData(TcpSession session) {
-        String element = null;
-        while (session.getSessionStatus() != SessionStatus.CLOSED && (element = redisUtils.rightPop(WAIT_TO_ACK + session.getDeviceId())) != null) {
-            this.fromKafka(element);
-        }
-    }
-
-    public void fromKafka(String value) {
-        CommandReq req = JsonUtils.deserialize(value, CommandReq.class);
-
-        String deviceId = req.getDeviceId();
-
-        if (contains(deviceId)) {
-            waitToSendFromKafka.offer(req);
-        } else if (req.isSendOnOffline()) {
-            redisUtils.leftPush(WAIT_TO_SEND_KAFKA + deviceId, value);
-        }
-    }
 
     /**
      * 来自http的下行发送
      */
-    public void fromHttp(CommandReq request) throws Exception {
+    public CommandResp fromHttp(CommandReq request) {
         String deviceId = request.getDeviceId();
 
         if (this.contains(deviceId)) {
-            saveWaitToSend(deviceId, request);
-            notify(deviceId);
-
-        } else if (request.isSendOnOffline()) {
-            saveWaitToSend(deviceId, request);
+            if (request.checkTryTimes()) {
+                this.syncWaitToSend.offer(request);
+                return null;
+            } else {
+                return null;
+            }
         } else {
-            log.warn("设备[" + request.getDeviceId() + "]不在线。");
+            if (request.isSendOnOffline()) {
+                if (downInfoSave != null) {
+                    downInfoSave.storeWaitToSend(request);
+                    return null;
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
         }
-    }
-
-    public void saveWaitToSend(String deviceId, CommandReq commandReq) {
-        redisUtils.leftPush(WAIT_TO_SEND + deviceId, JsonUtils.serialize(commandReq));
-    }
-
-    public void notify(String deviceId) {
-        haveWaitToSend.offer(deviceId);
     }
 }

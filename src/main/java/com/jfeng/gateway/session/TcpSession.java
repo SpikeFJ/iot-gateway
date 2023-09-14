@@ -118,20 +118,6 @@ public class TcpSession {
         sessionListeners.stream().forEach(x -> x.onSend(this, send));
     }
 
-    public void send() {
-        if (this.isSending.compareAndSet(false, true)) {
-            this.channel.eventLoop().execute(() -> {
-                try {
-                    this.getTcpServer().sendWaitToSend(this);
-                } catch (Exception e) {
-                    log.warn("发送失败", e);
-                } finally {
-                    this.isSending.set(false);
-                }
-            });
-        }
-    }
-
     public void close(String closeReason) {
         //由于关闭操作有可能是在其他线程中操作
         if (this.channel != null && (MDC.getCopyOfContextMap() == null || MDC.getCopyOfContextMap().size() == 0)) {

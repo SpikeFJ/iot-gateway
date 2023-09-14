@@ -147,8 +147,8 @@ public class RedisSessionListener implements SessionListener {
     @Override
     public void online(TcpSession tcpSession) {
         stateChangeEvent.offer(new StateChangeEvent(tcpSession, DeviceStatus.ONLINE));
-        tcpSession.getTcpServer().notify(tcpSession.getDeviceId());
-        tcpSession.getTcpServer().loadKafkaData(tcpSession);
+        tcpSession.getTcpServer().getDownInfoSave().loadWaitToSend(tcpSession);
+        tcpSession.getTcpServer().getDownInfoSave().loadSending(tcpSession);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.jfeng.gateway.dispatch;
+package com.jfeng.gateway.up.dispatch;
 
 import com.jfeng.gateway.message.DispatchMessage;
 

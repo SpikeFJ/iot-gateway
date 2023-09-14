@@ -1,4 +1,4 @@
-package com.jfeng.gateway.message;
+package com.jfeng.gateway.down;
 
 import lombok.Getter;
 

@@ -29,6 +29,8 @@ public class Constant {
     public static final String SERVER_SEND_BYTES = "total_send_bytes";
     public static final String SERVER_RECEIVE_PACKETS = "total_receive_packets";
     public static final String SERVER_RECEIVE_BYTES = "total_receive_bytes";
+    public static final String SERVER_WAIT_TO_SEND = "total_wait_to_send";
+    public static final String SERVER_SENDING = "total_sending";
     public static final String SERVER_LAST_REFRESH_TIME = "last_refresh_time";
 
     //<----日志附加信息------>

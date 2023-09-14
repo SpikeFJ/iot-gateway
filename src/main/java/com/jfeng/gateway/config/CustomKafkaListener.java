@@ -26,7 +26,6 @@ public class CustomKafkaListener {
         try {
             final String value = records.value();
             log.debug("接收消息: " + value + ",当前队列长度：");
-            tcpServer.fromKafka(value);
         } catch (Exception e) {
             log.warn("一般上行数据处理异常：", e);
         }

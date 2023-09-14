@@ -1,5 +1,6 @@
-package com.jfeng.gateway.protocol.none4;
+package com.jfeng.gateway.protocol;
 
+import com.jfeng.gateway.protocol.none4.StandardExtend4Decoder;
 import com.jfeng.gateway.session.TcpSession;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
