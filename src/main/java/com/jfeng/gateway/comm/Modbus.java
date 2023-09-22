@@ -72,12 +72,15 @@ public class Modbus {
             EvaluationContext context = new StandardEvaluationContext();
             context.setVariable("x", i);
 
+            String x = expression.replace("x", "#x");
+            String x1 = x.replace("X", "#x");
+
             if (dataType == 0) {
-                Integer value = parser.parseExpression(expression.replace("x", "#x")).getValue(context, Integer.class);
+                Integer value = parser.parseExpression(x1).getValue(context, Integer.class);
                 rspCode = 1;
                 result.put("value", value.toString());
             } else if (dataType == 1 || dataType == 2) {
-                Double value = parser.parseExpression(expression.replace("x", "#x")).getValue(context, Double.class);
+                Double value = parser.parseExpression(x1).getValue(context, Double.class);
 
                 BigDecimal valueWrap = BigDecimal.valueOf(value);
                 valueWrap.setScale(decimalLength, RoundingMode.HALF_DOWN);

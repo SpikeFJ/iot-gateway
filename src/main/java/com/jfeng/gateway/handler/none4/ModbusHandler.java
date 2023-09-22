@@ -87,10 +87,11 @@ public class ModbusHandler extends ChannelDuplexHandler {
 
         tcpChannel.initSetting(collectionSetting);
         Channel channel = tcpChannel.getChannel();
-        channel.eventLoop().scheduleAtFixedRate(() -> {
-            log.info(tcpChannel.getDtuCode()+" 定时发送开始");
+        channel.eventLoop().scheduleWithFixedDelay(() -> {
+            log.info(tcpChannel.getDtuCode() + " 定时发送开始");
+            tcpChannel.reset();
             tcpChannel.sendNext();
-        }, 10, collectionSetting.getConnectPeriod(), TimeUnit.SECONDS);
+        }, 0, collectionSetting.getConnectPeriod(), TimeUnit.SECONDS);
     }
 
     @Override

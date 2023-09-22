@@ -132,6 +132,10 @@ public class TcpChannel {
         }
     }
 
+    public void reset() {
+        sendingIndex = 0;
+    }
+
     public void sendNext() {
         ByteBuf buffer = Unpooled.buffer(8);
         toSend[sendingIndex].send(buffer);
