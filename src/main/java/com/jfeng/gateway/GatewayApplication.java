@@ -4,6 +4,7 @@ import com.jfeng.gateway.config.GateWayConfig;
 import com.jfeng.gateway.server.TcpServer;
 import com.jfeng.gateway.session.SessionListener;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -17,7 +18,7 @@ public class GatewayApplication implements CommandLineRunner {
     @Resource
     public GateWayConfig config;
 
-    @Resource
+    @Autowired(required = false)
     public TcpServer tcpServer;
 
     @Resource
@@ -30,10 +31,18 @@ public class GatewayApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         if ("TCP".equalsIgnoreCase(config.getAccessType()) && config.isEnable()) {
+            if (tcpServer == null) {
+                log.warn("初始化TCP服务端失败");
+                return;
+            }
             tcpServer.setProtocol(config.getProtocol());
             tcpServer.addListener(sessionListener);
             tcpServer.init(null);
             tcpServer.start();
+        } else if ("UDP".equalsIgnoreCase(config.getAccessType()) && config.isEnable()) {
+
+        } else if ("MQTT".equalsIgnoreCase(config.getAccessType()) && config.isEnable()) {
+
         }
     }
 }

@@ -89,7 +89,6 @@ public class RedisSessionListener implements SessionListener {
                 }
             }
         });
-
     }
 
     @PreDestroy

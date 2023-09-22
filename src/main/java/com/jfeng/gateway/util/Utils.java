@@ -11,12 +11,12 @@ public class Utils {
         return getIp(inetSocketAddress) + ":" + getPort(inetSocketAddress);
     }
 
-    public static String getLocalIp()  {
-        try{
+    public static String getLocalIp() {
+        try {
             final InetAddress localHost = InetAddress.getLocalHost();
             final String hostAddress = localHost.getHostAddress();
             return hostAddress;
-        }catch (Exception e){
+        } catch (Exception e) {
             return "UNKNOW";
         }
     }
@@ -72,4 +72,74 @@ public class Utils {
             return (bytes / 1099511627776L) + " TB";
         }
     }
+//
+//    public static class Value {
+//        public String value0;//体积含水量
+//        public String value1;//温度
+//        public String value2;//电导率
+//        public String value3;//PH值
+//        public String value4;//氮含量
+//        public String value5;//磷含量
+//        public String value6;//钾含量
+//        public String value7;//盐分
+//
+//        public void read03(byte[] bytes) {
+//            int offset = 0;
+//            int deviceAddress = bytes[offset++];
+//            int function = bytes[offset++];
+//            int num = bytes[offset++];
+//
+//            int tmp0 = unit16(bytes, offset);
+//            value0 = new BigDecimal(String.valueOf(tmp0)).divide(new BigDecimal(10d), BigDecimal.ROUND_HALF_UP).toPlainString();
+//            offset += 2;
+//
+//            int tmp1 = sign(bytes, offset);
+//            value1 = new BigDecimal(String.valueOf(tmp1)).divide(new BigDecimal(10.0d)).toPlainString();
+//            offset += 2;
+//
+//            value2 = String.valueOf(unit16(bytes, offset));
+//            offset += 2;
+//
+//            int tmp3 = unit16(bytes, offset);
+//            value3 = new BigDecimal(String.valueOf(tmp3)).divide(new BigDecimal(10d), BigDecimal.ROUND_HALF_UP).toPlainString();
+//            offset += 2;
+//
+//            value4 = String.valueOf(unit16(bytes, offset));
+//            offset += 2;
+//
+//            value5 = String.valueOf(unit16(bytes, offset));
+//            offset += 2;
+//
+//            value6 = String.valueOf(unit16(bytes, offset));
+//            offset += 2;
+//
+//            value7 = String.valueOf(unit16(bytes, offset));
+//            offset += 2;
+//        }
+//
+//        private int unit16(byte[] source, int offset) {
+//            return ((source[offset] & 0xFF) << 8) + (source[offset + 1] & 0xFF);
+//        }
+//
+//        private int sign(byte[] source, int offset) {
+//            return ((source[offset]) << 8) + (source[offset + 1]);
+//        }
+//
+//        public void print() {
+//            System.out.printf("体积含水量: %s RH\n", value0);
+//            System.out.printf("温度: %s ℃\n", value1);
+//            System.out.printf("电导率: %s us/cm\n", value2);
+//            System.out.printf("ph: %s\n", value3);
+//            System.out.printf("氮含量: %s mg/kg\n", value4);
+//            System.out.printf("磷含量: %s mg/kg\n", value5);
+//            System.out.printf("钾含量: %s mg/kg\n", value6);
+//            System.out.printf("盐分: %s mg/kg\n", value7);
+//        }
+//    }
+//
+//    public static void main(String[] args) {
+//        Value value = new Value();
+//        value.read03(ByteBufUtil.decodeHexDump("01031003E8ffe7029D00510021002E006B001990AC"));
+//        value.print();
+//    }
 }
