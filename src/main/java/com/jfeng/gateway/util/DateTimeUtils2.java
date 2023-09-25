@@ -30,6 +30,10 @@ public class DateTimeUtils2 {
         return outString(LocalDateTime.now(), "yyyy-MM-dd HH:mm:ss SSS");
     }
 
+    public static String outString(LocalDateTime value) {
+        return value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
     public static String outString(LocalDateTime value, String format) {
         return value.format(DateTimeFormatter.ofPattern(format));
     }

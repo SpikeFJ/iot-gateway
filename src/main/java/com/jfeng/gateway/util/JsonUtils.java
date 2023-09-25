@@ -40,7 +40,7 @@ public class JsonUtils {
         //JsonInclude.Include.ALWAYS      所有属性
         //JsonInclude.Include.NON_EMPTY   属性为 空（“”） 或者为 NULL 都不序列化
         //JsonInclude.Include.NON_NULL    属性为NULL 不序列化
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
 
 //        //configure方法 配置一些需要的参数

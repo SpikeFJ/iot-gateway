@@ -1,19 +1,129 @@
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<!doctype html>
+<html>
 
 <head>
-    <title>协议解析</title>
-    <script th:src="@{/js/bootstrap-treeview.min.js}"></script>
-    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="./js/vue.js"></script>
+    <script src="./js/tailwindcss.js"></script>
+    <link href="./css/daisy.css" rel="stylesheet" type="text/css"/>
 
-    <style th:inline="css" type="text/css" media="screen, print">
-        .li {
-            white-space: nowrap !important;
-        }
-    </style>
 </head>
-
 <body>
+<h1 class="text-4xl text-center">运行工况</h1>
+<div id="app">
+    <div class="px-5 py-5 mx-auto">
+        <div class="flex flex-wrap -m-5 text-center">
+            <div class="p-4 md:w-1/5 sm:w-1/2 w-full" @click="currentTab='OnlineList'">
+                <div class="border-2 border-gray-200 px-4 py-2 rounded-lg">
+                    <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                         stroke-width="2"
+                         class="text-indigo-500 w-12 h-12 mb-3 inline-block" viewBox="0 0 24 24">
+                        <path d="M8 17l4 4 4-4m-4-5v9"></path>
+                        <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"></path>
+                    </svg>
+                    <h2 class="title-font font-medium text-3xl text-gray-900">{{server_infos.online}}</h2>
+                    <p class="leading-relaxed">在线数</p>
+                </div>
+            </div>
+            <div class="p-4 md:w-1/5 sm:w-1/2 w-full"  @click="currentTab='ConnectList'">
+                <div class="border-2 border-gray-200 px-4 py-2 rounded-lg">
+                    <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                         stroke-width="2"
+                         class="text-indigo-500 w-12 h-12 mb-3 inline-block" viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"></path>
+                    </svg>
+                    <h2 class="title-font font-medium text-3xl text-gray-900">{{server_infos.collect}}</h2>
+                    <p class="leading-relaxed">未知连接数</p>
+                </div>
+            </div>
+            <div class="p-4 md:w-1/5 sm:w-1/2 w-full">
+                <div class="border-2 border-gray-200 px-4 py-2 rounded-lg">
+                    <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                         stroke-width="2"
+                         class="text-indigo-500 w-12 h-12 mb-3 inline-block" viewBox="0 0 24 24">
+                        <path d="M3 18v-6a9 9 0 0118 0v6"></path>
+                        <path
+                                d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z">
+                        </path>
+                    </svg>
+                    <h2 class="title-font font-medium text-3xl text-gray-900">{{server_infos.send}}</h2>
+                    <p class="leading-relaxed">下发数</p>
+                </div>
+            </div>
+            <div class="p-4 md:w-2/5 sm:w-1/2 w-full">
+                <div class="border-2 border-gray-200 px-4 py-2 rounded-lg">
+                    <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                         stroke-width="2"
+                         class="text-indigo-500 w-12 h-12 mb-3 inline-block" viewBox="0 0 24 24">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <h2 class="title-font font-medium text-3xl text-gray-900">{{server_infos.transfer}}</h2>
+                    <p class="leading-relaxed">转发数</p>
+                </div>
+            </div>
+        </div>
 
+        <div class="tabs m-3">
+            <a v-for="(tab, index) in tabs" :key="tab.id"
+               :class="['tab','tab-lifted',{'tab-active':currentTab===tab.id}]"
+               @click="currentTab=tab.id">{{tab.name}}</a>
+        </div>
+        <component :is="currentTab"></component>
+    </div>
+
+    <div class="toast" v-show="msg!==''">
+        <div class="alert alert-info">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>{{msg}}</span>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    const { createApp } = Vue;
+    import OnlineList from './js/online.js'
+    import ConnectList from './js/connect.js'
+
+    createApp({
+        components: {
+            OnlineList,
+            ConnectList
+        },
+        data() {
+            return {
+                currentTab: 'OnlineList',
+                tabs: [
+                    { id: 'OnlineList', name: "在线列表" },
+                    { id: "ConnectList", name: "未知连接" }
+                ],
+                server_infos: {
+                },
+                msg: ""
+            }
+        },
+        mounted() {
+            this.getSummary()
+        },
+        methods: {
+            async getSummary() {
+                var resp = await (await fetch("/summary")).json()
+                if (resp.code != 1) {
+                    this.msg = resp.message;
+                } else {
+                    var respData = resp.data
+                    this.server_infos.online = respData.online;
+                    this.server_infos.collect = respData.connect;
+                    this.server_infos.send = respData.send;
+                    this.server_infos.transfer = respData.transfer;
+                    this.server_infos.createTime = respData.createTime;
+                    this.server_infos.localAddress = respData.localAddress;
+                }
+            }
+        }
+    }).mount("#app");
+</script>
 </body>
 </html>

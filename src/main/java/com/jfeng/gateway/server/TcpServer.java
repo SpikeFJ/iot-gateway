@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -74,6 +75,7 @@ public class TcpServer extends ProxySessionListener implements Server {
     private Map<String, TcpSession> onLines = new ConcurrentHashMap<>();//已在线集合
     private Map<String, List<TcpSession>> onLinesSpare = new ConcurrentHashMap<>();//已在线集合(备用)
 
+    private LocalDateTime createTime;
     private AtomicInteger totalConnectNum = new AtomicInteger(0);//总连接次数
     private AtomicInteger totalCloseNum = new AtomicInteger(0);//总关闭次数
     private AtomicLong totalSendPackets = new AtomicLong(0L);//总发送包数量
@@ -95,7 +97,7 @@ public class TcpServer extends ProxySessionListener implements Server {
     @Override
     public void init(Map<String, String> parameters) {
         localAddress = Utils.getLocalIp();
-
+        createTime = LocalDateTime.now();
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("超时检测")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {

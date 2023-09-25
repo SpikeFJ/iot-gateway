@@ -3,6 +3,7 @@ package com.jfeng.gateway.session;
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.server.TcpServer;
 import com.jfeng.gateway.util.DateTimeUtils;
+import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.Utils;
 import io.netty.channel.Channel;
 import lombok.Getter;
@@ -152,5 +153,27 @@ public class TcpSession {
         }
 
         return s.substring(1);
+    }
+
+    public Map<String, Object> toOnlineJson() {
+        Map<String, Object> onlineJson = new HashMap<>();
+        onlineJson.put("createTime", DateTimeUtils2.outString(createTime, "yyyy-MM-dd HH:mm:ss"));
+        onlineJson.put("remoteAddress", remoteAddress);
+        onlineJson.put("sendPackets", sendPackets);
+        onlineJson.put("receivedPackets", receivedPackets);
+        onlineJson.put("lastReadTime", DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
+        onlineJson.put("deviceId", deviceId);
+        onlineJson.put("businessId", bId);
+        return onlineJson;
+    }
+
+    public Map<String, Object> toConnectJson() {
+        Map<String, Object> onlineJson = new HashMap<>();
+        onlineJson.put("createTime", DateTimeUtils2.outString(createTime, "yyyy-MM-dd HH:mm:ss"));
+        onlineJson.put("remoteAddress", remoteAddress);
+        onlineJson.put("sendPackets", sendPackets);
+        onlineJson.put("receivedPackets", receivedPackets);
+        onlineJson.put("lastReadTime", lastReadTime == 0 ? "" : DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
+        return onlineJson;
     }
 }
