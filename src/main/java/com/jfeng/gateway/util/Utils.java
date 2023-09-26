@@ -45,11 +45,11 @@ public class Utils {
         if (second < 60) {
             return second + " 秒";
         } else if (second < 3600) {
-            return (second / 60) + " 分钟 " + (second % 60) + " 秒";
+            return (second / 60) + " 分 " + (second % 60) + " 秒";
         } else if (second < 86400) {
-            return (second / 3660) + " 小时 " + ((second / 60) % 60) + " 分钟";
+            return (second / 3660) + " 时 " + ((second / 60) % 60) + " 分";
         } else {
-            return (second / 86400) + " 天 " + ((second / 3600) % 24) + " 小时";
+            return (second / 86400) + " 天 " + ((second / 3600) % 24) + " 时";
         }
     }
 

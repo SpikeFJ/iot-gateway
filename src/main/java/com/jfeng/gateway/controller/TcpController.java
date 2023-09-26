@@ -4,10 +4,13 @@ import com.jfeng.gateway.server.TcpServer;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.StringUtils;
+import com.jfeng.gateway.util.Utils;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,7 @@ public class TcpController {
         serverInfos.put("transfer", "0");
 
         serverInfos.put("createTime", DateTimeUtils2.outString(tcpServer.getCreateTime()));
+        serverInfos.put("createTimeDuration", Utils.outSecond(Duration.between(tcpServer.getCreateTime(), LocalDateTime.now()).getSeconds()));
         serverInfos.put("localAddress", tcpServer.getLocalAddress());
         serverInfos.put("totalConnectNum", tcpServer.getTotalConnectNum());
         serverInfos.put("totalCloseNum", tcpServer.getTotalCloseNum());
@@ -63,11 +67,10 @@ public class TcpController {
         Map<String, TcpSession> onLines = tcpServer.getOnLines();
         int skip = req.skip(onLines.size());
         List<Map<String, Object>> collect = onLines.values().parallelStream().filter(x -> {
-            if (StringUtils.isNotEmpty(req.getDeviceId())) {
-                return req.getDeviceId().equals(x.getDeviceId());
-            }
-            if (StringUtils.isNotEmpty(req.getBusinessId())) {
-                return req.getDeviceId().equals(x.getBId());
+            if (StringUtils.isNotEmpty(req.getQuery())) {
+                return req.getQuery().equalsIgnoreCase(x.getDeviceId())
+                        || req.getQuery().equalsIgnoreCase(x.getBId())
+                        || req.getQuery().equalsIgnoreCase(x.getRemoteAddress());
             }
             return true;
         }).skip(skip).limit(req.getPageSize()).map(x -> x.toOnlineJson()).collect(Collectors.toList());
@@ -91,11 +94,10 @@ public class TcpController {
         Map<String, TcpSession> onLines = tcpServer.getConnected();
         int skip = req.skip(onLines.size());
         List<Map<String, Object>> collect = onLines.values().parallelStream().filter(x -> {
-            if (StringUtils.isNotEmpty(req.getDeviceId())) {
-                return req.getDeviceId().equals(x.getDeviceId());
-            }
-            if (StringUtils.isNotEmpty(req.getBusinessId())) {
-                return req.getDeviceId().equals(x.getBId());
+            if (StringUtils.isNotEmpty(req.getQuery())) {
+                return req.getQuery().equalsIgnoreCase(x.getDeviceId())
+                        || req.getQuery().equalsIgnoreCase(x.getBId())
+                        || req.getQuery().equalsIgnoreCase(x.getRemoteAddress());
             }
             return true;
         }).skip(skip).limit(req.getPageSize()).map(x -> x.toConnectJson()).collect(Collectors.toList());
