@@ -65,16 +65,18 @@ public class TcpController {
         }
 
         Map<String, TcpSession> onLines = tcpServer.getOnLines();
-        int skip = req.skip(onLines.size());
+        int skip = PageInfo.skip(onLines.size(), req.getPageNum(), req.getPageSize());
+
         List<Map<String, Object>> collect = onLines.values().parallelStream().filter(x -> {
             if (StringUtils.isNotEmpty(req.getQuery())) {
                 return req.getQuery().equalsIgnoreCase(x.getDeviceId())
                         || req.getQuery().equalsIgnoreCase(x.getBId())
-                        || req.getQuery().equalsIgnoreCase(x.getRemoteAddress());
+                        || x.getRemoteAddress().contains(req.getQuery());
             }
             return true;
         }).skip(skip).limit(req.getPageSize()).map(x -> x.toOnlineJson()).collect(Collectors.toList());
-        return Resp.success(collect);
+
+        return Resp.success(PageInfo.create(onLines.size(), collect, req.getPageSize(), req.getPageNum()));
     }
 
     /**
@@ -91,17 +93,16 @@ public class TcpController {
             return Resp.success(collect);
         }
 
-        Map<String, TcpSession> onLines = tcpServer.getConnected();
-        int skip = req.skip(onLines.size());
-        List<Map<String, Object>> collect = onLines.values().parallelStream().filter(x -> {
+        Map<String, TcpSession> connected = tcpServer.getConnected();
+        int skip = PageInfo.skip(connected.size(), req.getPageNum(), req.getPageSize());
+
+        List<Map<String, Object>> collect = connected.values().parallelStream().filter(x -> {
             if (StringUtils.isNotEmpty(req.getQuery())) {
-                return req.getQuery().equalsIgnoreCase(x.getDeviceId())
-                        || req.getQuery().equalsIgnoreCase(x.getBId())
-                        || req.getQuery().equalsIgnoreCase(x.getRemoteAddress());
+                return x.getRemoteAddress().contains(req.getQuery());
             }
             return true;
         }).skip(skip).limit(req.getPageSize()).map(x -> x.toConnectJson()).collect(Collectors.toList());
 
-        return Resp.success(collect);
+        return Resp.success(PageInfo.create(connected.size(), collect, req.getPageSize(), req.getPageNum()));
     }
 }
