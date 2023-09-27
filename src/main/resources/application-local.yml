@@ -1,5 +1,5 @@
 server:
-  port: 9000
+  port: 40001
   compression:
     enabled: true
     min-response-size: 512
@@ -21,7 +21,7 @@ spring:
 gateway:
   enable: true
   access-type: tcp
-  port: 31000
+  port: 40000
   up:
     event-dispatch:
       - type: kafka
