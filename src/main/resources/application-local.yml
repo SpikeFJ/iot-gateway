@@ -21,7 +21,7 @@ spring:
 gateway:
   enable: true
   access-type: tcp
-  port: 30000
+  port: 31000
   up:
     event-dispatch:
       - type: kafka
@@ -46,6 +46,7 @@ gateway:
     type: kafka
     topic: send_down
   protocol: none4
+  maxHistroy: 50
 logging:
   level:
     com.jfeng.gateway*: debug

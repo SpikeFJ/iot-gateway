@@ -36,6 +36,7 @@ public class GatewayApplication implements CommandLineRunner {
                 return;
             }
             tcpServer.setProtocol(config.getProtocol());
+            tcpServer.setPort(config.getPort());
             tcpServer.addListener(sessionListener);
             tcpServer.init(null);
             tcpServer.start();

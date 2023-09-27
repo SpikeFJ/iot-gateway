@@ -1,0 +1,33 @@
+name: iot-gateway vultr_自动部署
+on:
+  push:
+    branches: ["main","develop"]
+  pull_request:
+    branches: ["main","develop"]    
+  workflow_dispatch:
+  
+jobs:
+  develop_build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取最新提交的代码
+        uses: actions/checkout@v3
+
+      - name: 设置jdk
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '19'
+          cache: 'maven'
+
+      - name: 项目打包
+        run: mvn clean -DskipTests=true -B package
+
+      - name: 删除旧的jar包以及运行脚本
+        run: sshpass -p ${{secrets.REMOTE_PWD}} ssh -o StrictHostKeyChecking=no root@${{secrets.REMOTE_IP}} "cd /my/iot-gateway && rm -rf ./*"
+
+      - name: 上传jar包和启动脚本到服务器中
+        run: sshpass -p ${{secrets.REMOTE_PWD}} scp -r -o StrictHostKeyChecking=no ./target/iot-gateway.jar ./run.sh root@${{secrets.REMOTE_IP}}:/my/iot-gateway
+
+      - name: 启动项目
+        run: sshpass -p ${{secrets.REMOTE_PWD}} ssh -o StrictHostKeyChecking=no root@${{secrets.REMOTE_IP}} "cd /my/iot-gateway && chmod +x run.sh && ./run.sh"
