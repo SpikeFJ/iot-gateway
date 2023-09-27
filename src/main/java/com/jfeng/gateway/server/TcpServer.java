@@ -208,7 +208,7 @@ public class TcpServer extends ProxySessionListener implements Server {
         });
 
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED);
-        ChannelFuture future = bootstrap.bind(30000).sync();
+        ChannelFuture future = bootstrap.bind(port).sync();
         log.info("TCP服务启动成功,端口: {}", port);
         future.channel().closeFuture().addListener(x -> {
             bossGroup.shutdownGracefully();
