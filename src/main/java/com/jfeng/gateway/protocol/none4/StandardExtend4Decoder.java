@@ -82,7 +82,7 @@ public class StandardExtend4Decoder extends LengthFieldBasedFrameDecoder {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.error("异常断开", cause.getMessage());
+        log.error("异常断开", cause);
         TcpSession client = ctx.channel().attr(SESSION_KEY).get();
         if (client != null) {
             client.close(cause.getMessage());
