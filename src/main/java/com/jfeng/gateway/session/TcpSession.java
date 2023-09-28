@@ -4,6 +4,7 @@ import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.server.TcpServer;
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.DateTimeUtils2;
+import com.jfeng.gateway.util.FIFO;
 import com.jfeng.gateway.util.Utils;
 import io.netty.channel.Channel;
 import lombok.Getter;
@@ -51,6 +52,8 @@ public class TcpSession {
 
     private Map<String, Object> tag = new HashMap<>();
     private List<SessionListener> sessionListeners = new ArrayList<>();
+
+    private FIFO<HistroyRecord> histroyRecordFIFO;
 
     public TcpSession(Channel channel, TcpServer tcpServer) {
         this.channel = channel;
@@ -129,6 +132,9 @@ public class TcpSession {
         MDC.remove(Constant.LOG_ADDRESS);
         MDC.remove(Constant.LOG_TRANSACTION_ID);
 
+        if (this.histroyRecordFIFO != null) {
+            this.histroyRecordFIFO.clear();
+        }
         this.sessionStatus = SessionStatus.CLOSED;
         this.closeReason = closeReason;
         this.channel.attr(SESSION_KEY).getAndSet(null);
