@@ -92,7 +92,7 @@ export default {
           </div>    
           <div class="md:w-1/4 w-full text-right">
             <input type="text" v-model="query" @keyup.enter='search' placeholder="Ip端口" class="input input-bordered w-1/8 max-w-sm input-sm" />
-            <button class="btn btn-outline btn-sm mx-3 btn-primary" @click="search" >查找</button>
+            <button class="btn btn-outline btn-sm mx-3 px-6 btn-primary" @click="search" >查找</button>
           </div>
       </div>
       
