@@ -23,6 +23,8 @@ public class HistroySessionListener implements SessionListener {
 
     @Override
     public void onConnect(TcpSession tcpSession) {
+        tcpSession.setHistroyRecordFIFO(new FIFO<>(maxHistroy));
+
         HistroyRecord histroyRecord = new HistroyRecord();
         histroyRecord.setDataType(0);
         histroyRecord.setTime(DateTimeUtils2.outNow());
@@ -60,7 +62,7 @@ public class HistroySessionListener implements SessionListener {
 
     @Override
     public void online(TcpSession tcpSession) {
-        tcpSession.setHistroyRecordFIFO(new FIFO<>(maxHistroy));
+
     }
 
     @Override
