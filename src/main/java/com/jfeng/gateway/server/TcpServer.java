@@ -97,7 +97,7 @@ public class TcpServer extends ProxySessionListener implements Server {
 
     @Override
     public void init(Map<String, String> parameters) {
-        localAddress = Utils.getLocalIp();
+        localAddress = Utils.getIpAddress();
         createTime = LocalDateTime.now();
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("超时检测")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {

@@ -39,7 +39,7 @@ public class TcpController {
 
         serverInfos.put("createTime", DateTimeUtils2.outString(tcpServer.getCreateTime()));
         serverInfos.put("createTimeDuration", Utils.outSecond(Duration.between(tcpServer.getCreateTime(), LocalDateTime.now()).getSeconds()));
-        serverInfos.put("localAddress", tcpServer.getLocalAddress());
+        serverInfos.put("localAddress", tcpServer.getLocalAddress()+":"+tcpServer.getPort());
         serverInfos.put("totalConnectNum", tcpServer.getTotalConnectNum());
         serverInfos.put("totalCloseNum", tcpServer.getTotalCloseNum());
         serverInfos.put("totalSendPackets", tcpServer.getTotalSendPackets());
