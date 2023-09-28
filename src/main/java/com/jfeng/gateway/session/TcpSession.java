@@ -132,16 +132,14 @@ public class TcpSession {
         MDC.remove(Constant.LOG_ADDRESS);
         MDC.remove(Constant.LOG_TRANSACTION_ID);
 
-        if (this.histroyRecordFIFO != null) {
-            this.histroyRecordFIFO.clear();
-        }
+        sessionListeners.stream().forEach(x -> x.onDisConnect(this, closeReason));
+
         this.sessionStatus = SessionStatus.CLOSED;
         this.closeReason = closeReason;
         this.channel.attr(SESSION_KEY).getAndSet(null);
         if (this.channel != null) {
             channel.close();
         }
-        sessionListeners.stream().forEach(x -> x.onDisConnect(this, closeReason));
     }
 
 

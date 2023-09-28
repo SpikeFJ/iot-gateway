@@ -57,7 +57,7 @@ public class HistroySessionListener implements SessionListener {
 
     @Override
     public void onDisConnect(TcpSession tcpSession, String reason) {
-
+        tcpSession.getHistroyRecordFIFO().clear();
     }
 
     @Override
