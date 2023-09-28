@@ -125,29 +125,29 @@ export default {
 
     </table>
   </div>
-  <footer class="footer footer-center my-3 text-base-content">
-  <aside>
-  <!-- This is an example component -->
-  <div class="max-w-2xl mx-auto">
-    <nav aria-label="Page navigation example">
-      <ul class="inline-flex -space-x-px">
-        <li>
-          <a class="bg-white border border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ml-0 rounded-l-lg leading-tight py-2 px-3 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" @click='prePage'>上一页</a>
-        </li>
-        <li v-for="item in pagination()">
-          <a @click='item.action' :class='item.class'>{{item.name}}</a>
-        </li>
-        <li>
-          <a class="bg-white border border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-r-lg leading-tight py-2 px-3 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" @click='nextPage'>下一页</a>
-        </li>
-        <li class='px-5'>
-          每页 {{pageSize}} 条,共 {{totalPages}} 页,计 {{totalRecords}} 条记录
-        </li>
-      </ul>
-    </nav>
-  </div>
-  </aside>
-  </footer>
+ <footer class="footer my-3 justify-end">
+<aside>
+<!-- This is an example component -->
+<div class="max-w-2xl mx-auto">
+  <nav aria-label="Page navigation example">
+    <ul class="inline-flex -space-x-px">
+      <li>
+        <a class="bg-white border border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ml-0 rounded-l-lg leading-tight py-2 px-3 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" @click='prePage'>上一页</a>
+      </li>
+      <li v-for="item in pagination()">
+        <a @click='item.action' :class='item.class'>{{item.name}}</a>
+      </li>
+      <li>
+        <a class="bg-white border border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-r-lg leading-tight py-2 px-3 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" @click='nextPage'>下一页</a>
+      </li>
+      <li class='px-5'>
+        每页 {{pageSize}} 条,共 {{totalPages}} 页,计 {{totalRecords}} 条记录
+      </li>
+    </ul>
+  </nav>
+</div>
+</aside>
+</footer>
   </div>
   `
 }

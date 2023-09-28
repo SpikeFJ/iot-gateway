@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="./js/vue.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.7.5/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="./js/tailwindcss.js"></script>
+    <link href="./css/daisy.css" rel="stylesheet" type="text/css" />
 
 </head>
 <body>
@@ -47,9 +47,9 @@
                                 d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z">
                         </path>
                     </svg>
-                    <h2 :title="server_info.createTime" class="title-font font-medium text-2xl text-gray-900">
+                    <h2 :title="server_info.localPort" class="title-font font-medium text-2xl text-gray-900">
                         {{server_info.localAddress}}</h2>
-                    <p class="leading-relaxed">监听端口</p>
+                    <p class="leading-relaxed">监听地址</p>
                 </div>
             </div>
 
@@ -146,6 +146,7 @@
                     this.server_info.createTime = respData.createTime;
                     this.server_info.createTimeDuration = respData.createTimeDuration;
                     this.server_info.localAddress = respData.localAddress;
+                    this.server_info.localPort = respData.localPort;
                     this.server_info.totalConnectNum = respData.totalConnectNum;
                     this.server_info.totalCloseNum = respData.totalCloseNum;
                     this.server_info.totalSendBytes = respData.totalSendBytes;
