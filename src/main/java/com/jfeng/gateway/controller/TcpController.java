@@ -106,4 +106,20 @@ public class TcpController {
 
         return Resp.success(PageInfo.create(connected.size(), collect, req.getPageSize(), req.getPageNum()));
     }
+
+    @RequestMapping(path = "/single", method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces = "application/json;charset=UTF-8")
+    @ResponseBody
+    public Resp queryDevice(@RequestBody String id) {
+        if (StringUtils.isEmpty(id)) {
+            return Resp.fail("请传递设备编号.");
+        }
+
+        TcpSession tcpSession = tcpServer.getOnLines().values().parallelStream()
+                .filter(device -> device.getDeviceId().equalsIgnoreCase(id))
+                .findAny().get();
+        if (tcpSession != null) {
+            Resp.success(tcpSession.toSingle());
+        }
+        return Resp.success();
+    }
 }

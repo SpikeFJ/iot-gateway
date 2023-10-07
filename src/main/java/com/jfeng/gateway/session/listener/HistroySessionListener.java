@@ -1,6 +1,6 @@
 package com.jfeng.gateway.session.listener;
 
-import com.jfeng.gateway.session.HistroyRecord;
+import com.jfeng.gateway.session.HistoryRecord;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.DateTimeUtils2;
@@ -15,30 +15,30 @@ import org.springframework.stereotype.Component;
 @Component
 @Setter
 @Slf4j
-@ConditionalOnProperty(name = "gateway.maxHistroy")
+@ConditionalOnProperty(name = "gateway.maxHistory")
 public class HistroySessionListener implements SessionListener {
 
-    @Value("${gateway.maxHistroy}")
-    private int maxHistroy;
+    @Value("${gateway.maxHistory:1000}")
+    private int maxHistory;
 
     @Override
     public void onConnect(TcpSession tcpSession) {
-        tcpSession.setHistroyRecordFIFO(new FIFO<>(maxHistroy));
+        tcpSession.setHistroyRecordFIFO(new FIFO<>(maxHistory));
 
-        HistroyRecord histroyRecord = new HistroyRecord();
-        histroyRecord.setDataType(0);
-        histroyRecord.setTime(DateTimeUtils2.outNow());
-        histroyRecord.setData("");
-        tcpSession.getHistroyRecordFIFO().add(histroyRecord);
+        HistoryRecord historyRecord = new HistoryRecord();
+        historyRecord.setDataType(0);
+        historyRecord.setTime(DateTimeUtils2.outNow());
+        historyRecord.setData("");
+        tcpSession.getHistroyRecordFIFO().add(historyRecord);
     }
 
     @Override
     public void onReceive(TcpSession tcpSession, byte[] data) {
-        HistroyRecord histroyRecord = new HistroyRecord();
-        histroyRecord.setDataType(1);
-        histroyRecord.setTime(DateTimeUtils2.outNow());
-        histroyRecord.setData(ByteBufUtil.hexDump(data));
-        tcpSession.getHistroyRecordFIFO().add(histroyRecord);
+        HistoryRecord historyRecord = new HistoryRecord();
+        historyRecord.setDataType(1);
+        historyRecord.setTime(DateTimeUtils2.outNow());
+        historyRecord.setData(ByteBufUtil.hexDump(data));
+        tcpSession.getHistroyRecordFIFO().add(historyRecord);
     }
 
     @Override
@@ -48,11 +48,11 @@ public class HistroySessionListener implements SessionListener {
 
     @Override
     public void onSend(TcpSession tcpSession, byte[] data) {
-        HistroyRecord histroyRecord = new HistroyRecord();
-        histroyRecord.setDataType(2);
-        histroyRecord.setTime(DateTimeUtils2.outNow());
-        histroyRecord.setData(ByteBufUtil.hexDump(data));
-        tcpSession.getHistroyRecordFIFO().add(histroyRecord);
+        HistoryRecord historyRecord = new HistoryRecord();
+        historyRecord.setDataType(2);
+        historyRecord.setTime(DateTimeUtils2.outNow());
+        historyRecord.setData(ByteBufUtil.hexDump(data));
+        tcpSession.getHistroyRecordFIFO().add(historyRecord);
     }
 
     @Override

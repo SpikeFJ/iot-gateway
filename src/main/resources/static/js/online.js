@@ -1,3 +1,5 @@
+import Detail from './detail.js'
+
 export default {
     data() {
         return {
@@ -8,8 +10,13 @@ export default {
             totalPages: 0,
             totalRecords: 0,
             pageSize: 10,
-            pageNum: 1
+            pageNum: 1,
+
+            deviceId:""
         }
+    },
+    components:{
+        Detail
     },
     mounted() {
         this.search();
@@ -18,12 +25,12 @@ export default {
         test() {
             this.online_list = [
                 { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000016", bussiness_id: "10086" },
-                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000016", bussiness_id: "10086" },
-                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000016", bussiness_id: "10086" },
-                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000016", bussiness_id: "10086" },
-                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000016", bussiness_id: "10086" },
-                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000016", bussiness_id: "10086" },
-                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000016", bussiness_id: "10086" },
+                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000017", bussiness_id: "10086" },
+                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000018", bussiness_id: "10086" },
+                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000019", bussiness_id: "10086" },
+                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000020", bussiness_id: "10086" },
+                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000021", bussiness_id: "10086" },
+                { connect_time: "2023-09-27 10:02:21", remote_ip: "127.0.0.1:11953", receive_packets: 1, send_packets: 2, receive_time: "2023-09-27 10:02:25", device_id: "T0000000000000022", bussiness_id: "10086" },
             ]
         },
         search() {
@@ -85,6 +92,9 @@ export default {
                 return (this.pageNum - 1) * this.pageSize + index + 1;
             }
         },
+        detail(newDeviceId){
+            this.deviceId = newDeviceId;
+        },
         pagination() {
             var obj = [];
             if (this.pageNum > this.totalPages) {
@@ -119,7 +129,7 @@ export default {
 </div>
 
 <div class="overflow-auto h-5/6">
-<table class="table table-pin-rows">
+<table class="table">
 <thead>
   <tr>
     <th class="text-center">序号</th>
@@ -130,7 +140,6 @@ export default {
     <th class="text-center">最后一次接收时间</th>
     <th class="text-center">唯一标识</th>
     <th class="text-center">业务id</th>
-    <th class="text-center">实时</th>
     <th class="text-center">操作</th>
   </tr>
 </thead>
@@ -145,16 +154,13 @@ export default {
     <td class="text-center">{{item.device_id}}</td>
     <td class="text-center">{{item.bussiness_id}}</td>
     <td class="text-center">
-      <input type="checkbox" class="toggle toggle-primary toggle-xs" v-model="item.notify"/>
-    </td>
-    <td class="text-center">
-      <a class="link link-primary" @click='detail(item.device_id)'>详情</a>
+      <label for="my_modal_7" class="link link-primary" @click='detail(item.device_id)'>详情</label>
     </td>
   </tr>
 </tbody>
 </table>
 </div>
-<footer class="footer my-3 justify-end">
+<footer class="footer my-3 p-1 justify-end">
 <aside>
 <!-- This is an example component -->
 <div class="max-w-2xl mx-auto">
@@ -177,6 +183,15 @@ export default {
 </div>
 </aside>
 </footer>
+</div>
+
+<input type="checkbox" id="my_modal_7" class="modal-toggle" />
+<div class="modal ">
+  <div class="modal-box w-11/12 max-w-5xl">
+    <h3 class="text-xl text-center">会话详情</h3>
+    <Detail v-model:id="deviceId" />
+  </div>
+  <label class="modal-backdrop" for="my_modal_7">Close</label>
 </div>
 `
 }

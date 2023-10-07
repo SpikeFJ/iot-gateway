@@ -1,8 +1,11 @@
 package com.jfeng.gateway.util;
 
+import lombok.Getter;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 
+@Getter
 public class FIFO<T> {
     int capacity = 10;
     int offset = 0;

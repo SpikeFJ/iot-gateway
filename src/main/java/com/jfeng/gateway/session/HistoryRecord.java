@@ -8,7 +8,7 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-public class HistroyRecord {
+public class HistoryRecord {
     /**
      * 数据类型。0：建立连接 1:接收 2：发送
      */

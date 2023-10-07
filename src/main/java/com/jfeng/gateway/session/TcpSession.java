@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.jfeng.gateway.protocol.none4.StandardExtend4Decoder.SESSION_KEY;
 
@@ -48,12 +47,11 @@ public class TcpSession {
     private String remoteAddress;
     private String localAddress;
     private TcpServer tcpServer;
-    private AtomicBoolean isSending = new AtomicBoolean(false);
 
     private Map<String, Object> tag = new HashMap<>();
     private List<SessionListener> sessionListeners = new ArrayList<>();
 
-    private FIFO<HistroyRecord> histroyRecordFIFO;
+    private FIFO<HistoryRecord> histroyRecordFIFO;
 
     public TcpSession(Channel channel, TcpServer tcpServer) {
         this.channel = channel;
@@ -179,5 +177,30 @@ public class TcpSession {
         onlineJson.put("receivedPackets", receivedPackets);
         onlineJson.put("lastReadTime", lastReadTime == 0 ? "" : DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
         return onlineJson;
+    }
+
+    public Map<String, Object> toSingle() {
+        Map<String, Object> result = new HashMap<>();
+
+        Map<String, Object> basic = new HashMap<>();
+        basic.put("sessionStatus", sessionStatus.getName());
+        basic.put("remoteAddress", remoteAddress);
+        basic.put("createTime", DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
+        basic.put("channelId", channel);
+
+        basic.put("deviceId", deviceId);
+        basic.put("bId", bId);
+
+        basic.put("sendPackets", sendPackets);
+        basic.put("sendBytes", sendBytes);
+        basic.put("lastWriteTime", lastWriteTime == 0 ? "" : DateTimeUtils2.outString(lastWriteTime, "yyyy-MM-dd HH:mm:ss"));
+
+        basic.put("receivedPackets", receivedPackets);
+        basic.put("receivedBytes", receivedBytes);
+        basic.put("lastReadTime", lastReadTime == 0 ? "" : DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
+
+        result.put("basic", basic);
+        basic.put("history", histroyRecordFIFO.getData());
+        return basic;
     }
 }
