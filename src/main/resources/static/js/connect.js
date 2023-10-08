@@ -1,3 +1,5 @@
+import ConnectDetail from "./connectDetail.js";
+
 export default {
     data() {
         return {
@@ -10,6 +12,9 @@ export default {
             pageSize: 10,
             pageNum: 1
         }
+    },
+    components:{
+        ConnectDetail
     },
     mounted() {
         this.search();
@@ -34,9 +39,7 @@ export default {
                             tmp.receive_packets = element.receivedPackets;
                             tmp.send_packets = element.sendPackets;
                             tmp.receive_time = element.lastReadTime;
-                            tmp.device_id = element.deviceId;
-                            tmp.bussiness_id = element.bussinessId;
-
+                            tmp.channelId = element.channelId;
                             this.connect_list.push(tmp);
                         });
                     }
@@ -83,6 +86,9 @@ export default {
                 })
             }
             return obj;
+        },
+        connectDetail(connectId){
+            this.$refs.child.query(connectId);
         }
     },
     template: `
@@ -106,7 +112,7 @@ export default {
           <th class="text-center">发送数据包</th>
           <th class="text-center">接收数据包</th>
           <th class="text-center">最后一次接收时间</th>
-          <th class="text-center">实时</th>
+          <th class="text-center">操作</th>
         </tr>
       </thead>
       <tbody>
@@ -118,7 +124,7 @@ export default {
           <td class="text-center">{{item.send_packets}}</td>
           <td class="text-center">{{item.receive_time}}</td>
           <td class="text-center">
-            <input type="checkbox" class="toggle toggle-primary toggle-xs" v-model="item.notify"/>
+            <label for="my_modal_1" class="link link-primary" @click='connectDetail(item.channelId)'>详情</label>
           </td>
         </tr>
       </tbody>
@@ -149,5 +155,14 @@ export default {
 </aside>
 </footer>
   </div>
+  
+  <input type="checkbox" id="my_modal_1" class="modal-toggle" />
+<div class="modal ">
+  <div class="modal-box w-11/12 max-w-5xl">
+  <h1 class="sm:text-3xl text-2xl font-medium text-center title-font text-gray-900 mb-4">连接详情</h1>
+    <ConnectDetail ref='child' />
+  </div>
+  <label class="modal-backdrop" for="my_modal_1">Close</label>
+</div>
   `
 }

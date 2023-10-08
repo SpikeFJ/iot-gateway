@@ -109,16 +109,33 @@ public class TcpController {
 
     @RequestMapping(path = "/single", method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces = "application/json;charset=UTF-8")
     @ResponseBody
-    public Resp queryDevice(@RequestBody String id) {
-        if (StringUtils.isEmpty(id)) {
-            return Resp.fail("请传递设备编号.");
+    public Resp queryDevice(@RequestBody ReqSingle single) {
+        if (StringUtils.isEmpty(single.getId())) {
+            return Resp.fail("缺少设备编号.");
         }
 
         TcpSession tcpSession = tcpServer.getOnLines().values().parallelStream()
-                .filter(device -> device.getDeviceId().equalsIgnoreCase(id))
+                .filter(device -> device.getDeviceId().equalsIgnoreCase(single.getId()))
                 .findAny().get();
         if (tcpSession != null) {
-            Resp.success(tcpSession.toSingle());
+            return Resp.success(tcpSession.toSingle());
+        }
+        return Resp.success();
+    }
+
+
+    @RequestMapping(path = "/singleConnect", method = RequestMethod.POST, consumes = "application/json;charset=UTF-8", produces = "application/json;charset=UTF-8")
+    @ResponseBody
+    public Resp queryConnect(@RequestBody ReqSingle single) {
+        if (StringUtils.isEmpty(single.getId())) {
+            return Resp.fail("缺少连接id.");
+        }
+
+        TcpSession tcpSession = tcpServer.getConnected().values().parallelStream()
+                .filter(device -> device.getChannelId().equalsIgnoreCase(single.getId()))
+                .findAny().get();
+        if (tcpSession != null) {
+            return Resp.success(tcpSession.toSingle());
         }
         return Resp.success();
     }

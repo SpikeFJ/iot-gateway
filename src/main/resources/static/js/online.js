@@ -12,7 +12,6 @@ export default {
             pageSize: 10,
             pageNum: 1,
 
-            deviceId:""
         }
     },
     components:{
@@ -93,7 +92,7 @@ export default {
             }
         },
         detail(newDeviceId){
-            this.deviceId = newDeviceId;
+            this.$refs.child.query(newDeviceId);
         },
         pagination() {
             var obj = [];
@@ -188,8 +187,8 @@ export default {
 <input type="checkbox" id="my_modal_7" class="modal-toggle" />
 <div class="modal ">
   <div class="modal-box w-11/12 max-w-5xl">
-    <h3 class="text-xl text-center">会话详情</h3>
-    <Detail v-model:id="deviceId" />
+  <h1 class="sm:text-3xl text-2xl font-medium text-center title-font text-gray-900 mb-4">会话详情</h1>
+    <Detail ref='child' />
   </div>
   <label class="modal-backdrop" for="my_modal_7">Close</label>
 </div>

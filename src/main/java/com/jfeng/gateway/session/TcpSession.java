@@ -173,8 +173,9 @@ public class TcpSession {
         Map<String, Object> onlineJson = new HashMap<>();
         onlineJson.put("createTime", DateTimeUtils2.outString(createTime, "yyyy-MM-dd HH:mm:ss"));
         onlineJson.put("remoteAddress", remoteAddress);
+        onlineJson.put("channelId", channelId);
         onlineJson.put("sendPackets", sendPackets);
-        onlineJson.put("receivedPackets", receivedPackets);
+        onlineJson.put("channe", sendPackets);
         onlineJson.put("lastReadTime", lastReadTime == 0 ? "" : DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
         return onlineJson;
     }
@@ -186,7 +187,7 @@ public class TcpSession {
         basic.put("sessionStatus", sessionStatus.getName());
         basic.put("remoteAddress", remoteAddress);
         basic.put("createTime", DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
-        basic.put("channelId", channel);
+        basic.put("channelId", channelId);
 
         basic.put("deviceId", deviceId);
         basic.put("bId", bId);
@@ -200,7 +201,7 @@ public class TcpSession {
         basic.put("lastReadTime", lastReadTime == 0 ? "" : DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
 
         result.put("basic", basic);
-        basic.put("history", histroyRecordFIFO.getData());
-        return basic;
+        result.put("history", histroyRecordFIFO.getData());
+        return result;
     }
 }

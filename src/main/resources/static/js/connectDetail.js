@@ -6,35 +6,6 @@ export default {
         }
     },
     methods: {
-        test(id) {
-            console.log("设备Id:" + id);
-            this.basic = {
-                sessionStatus: "已登录",
-                remoteAddress: "127.0.0.1",
-                createTime: "yyyy-MM-dd HH:mm:ss",
-                channelId: "通道编号",
-                deviceId: "T0000000000001",
-                bId: "T0000000000002",
-
-                sendPackets: "T0000000000001",
-                sendBytes: "T0000000000002",
-                lastWriteTime: "T0000000000002",
-
-                receivedPackets: "T0000000000001",
-                receivedBytes: "T0000000000002",
-                lastReadTime: "T0000000000002",
-            }
-            this.history = [
-                { dataType: 0, data: "2222222222222222222222222222222222222222222222222222222222222111111111111111111111111111111111111111111111111111111111111111111111", time: "2023-10-07 12:00:01" },
-                { dataType: 1, data: "", time: "2023-10-07 12:00:01" },
-                { dataType: 1, data: "", time: "2023-10-07 12:00:01" },
-                { dataType: 2, data: "", time: "2023-10-07 12:00:01" },
-                { dataType: 2, data: "", time: "2023-10-07 12:00:01" },
-                { dataType: 1, data: "", time: "2023-10-07 12:00:01" },
-                { dataType: 2, data: "", time: "2023-10-07 12:00:01" },
-                { dataType: 2, data: "", time: "2023-10-07 12:00:01" }
-            ];
-        },
         parseType(type) {
             if (type == 0) {
                 return "连接"
@@ -46,17 +17,17 @@ export default {
                 return "未知"
             }
         },
-        query(strId) {
+        query(connectId) {
             var config = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json;charset=utf-8'
                 },
                 body: JSON.stringify({
-                    id: strId
+                    id: connectId
                 })
             };
-            fetch('/single', config)
+            fetch('/singleConnect', config)
                 .then(resp => resp.json())
                 .then(res => {
                     if (res.code != 1) {
