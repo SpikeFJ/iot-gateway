@@ -22,7 +22,7 @@
                         <path d="M8 17l4 4 4-4m-4-5v9"></path>
                         <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"></path>
                     </svg>
-                    <h2 class="title-font font-medium text-2xl text-gray-900">{{server_info.online}}</h2>
+                    <h2 class="title-font font-medium text-2xl text-gray-900" v-text="server_info.online"></h2>
                     <p class="leading-relaxed">在线设备</p>
                 </div>
             </div>
@@ -34,7 +34,7 @@
                         <circle cx="9" cy="7" r="4"></circle>
                         <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"></path>
                     </svg>
-                    <h2 class="title-font font-medium text-2xl text-gray-900">{{server_info.collect}}</h2>
+                    <h2 class="title-font font-medium text-2xl text-gray-900" v-text="server_info.collect"></h2>
                     <p class="leading-relaxed">未知连接</p>
                 </div>
             </div>
@@ -48,9 +48,9 @@
                                 d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z">
                         </path>
                     </svg>
-                    <h2 :title="server_info.localPort" class="title-font font-medium text-2xl text-gray-900">
-                        {{server_info.localAddress}}</h2>
-                    <p class="leading-relaxed">监听地址</p>
+                    <h2 :title="server_info.createTime" v-text="server_info.localAddress" class="title-font font-medium text-2xl text-gray-900">
+                    </h2>
+                    <p class="leading-relaxed">本地地址</p>
                 </div>
             </div>
 
@@ -60,13 +60,11 @@
                          stroke-width="2" class="text-indigo-500 w-12 h-12 mb-3 inline-block" viewBox="0 0 24 24">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                     </svg>
-                    <h2 :title="server_info.createTime" class="title-font font-medium text-2xl text-gray-900">
-                        {{server_info.createTimeDuration}}</h2>
+                    <h2 :title="server_info.createTime" class="title-font font-medium text-2xl text-gray-900" v-text="server_info.createTimeDuration">
+                    </h2>
                     <p class="leading-relaxed">累计运行时长</p>
                 </div>
             </div>
-
-
             <div class="p-3 md:w-1/5 sm:w-1/2 w-full">
                 <div class="border-2 border-gray-200 px-4 py-2 rounded-lg">
 
