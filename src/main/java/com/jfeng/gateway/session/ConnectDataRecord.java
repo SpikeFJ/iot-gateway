@@ -4,11 +4,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 历史发送记录
+ * 连接发送记录
  */
 @Setter
 @Getter
-public class HistoryRecord {
+public class ConnectDataRecord {
     /**
      * 数据类型。0：建立连接 1:接收 2：发送
      */

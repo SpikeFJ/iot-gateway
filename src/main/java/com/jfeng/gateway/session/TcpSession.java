@@ -51,7 +51,7 @@ public class TcpSession {
     private Map<String, Object> tag = new HashMap<>();
     private List<SessionListener> sessionListeners = new ArrayList<>();
 
-    private FIFO<HistoryRecord> histroyRecordFIFO;
+    private FIFO<ConnectDataRecord> histroyRecordFIFO;
 
     public TcpSession(Channel channel, TcpServer tcpServer) {
         this.channel = channel;
@@ -175,7 +175,7 @@ public class TcpSession {
         onlineJson.put("remoteAddress", remoteAddress);
         onlineJson.put("channelId", channelId);
         onlineJson.put("sendPackets", sendPackets);
-        onlineJson.put("channe", sendPackets);
+        onlineJson.put("channel", channelId);
         onlineJson.put("lastReadTime", lastReadTime == 0 ? "" : DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
         return onlineJson;
     }

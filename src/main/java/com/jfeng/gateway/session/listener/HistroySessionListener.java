@@ -1,6 +1,6 @@
 package com.jfeng.gateway.session.listener;
 
-import com.jfeng.gateway.session.HistoryRecord;
+import com.jfeng.gateway.session.ConnectDataRecord;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.DateTimeUtils2;
@@ -25,20 +25,20 @@ public class HistroySessionListener implements SessionListener {
     public void onConnect(TcpSession tcpSession) {
         tcpSession.setHistroyRecordFIFO(new FIFO<>(maxHistory));
 
-        HistoryRecord historyRecord = new HistoryRecord();
-        historyRecord.setDataType(0);
-        historyRecord.setTime(DateTimeUtils2.outNow());
-        historyRecord.setData("");
-        tcpSession.getHistroyRecordFIFO().add(historyRecord);
+        ConnectDataRecord connectDataRecord = new ConnectDataRecord();
+        connectDataRecord.setDataType(0);
+        connectDataRecord.setTime(DateTimeUtils2.outNow());
+        connectDataRecord.setData("");
+        tcpSession.getHistroyRecordFIFO().add(connectDataRecord);
     }
 
     @Override
     public void onReceive(TcpSession tcpSession, byte[] data) {
-        HistoryRecord historyRecord = new HistoryRecord();
-        historyRecord.setDataType(1);
-        historyRecord.setTime(DateTimeUtils2.outNow());
-        historyRecord.setData(ByteBufUtil.hexDump(data));
-        tcpSession.getHistroyRecordFIFO().add(historyRecord);
+        ConnectDataRecord connectDataRecord = new ConnectDataRecord();
+        connectDataRecord.setDataType(1);
+        connectDataRecord.setTime(DateTimeUtils2.outNow());
+        connectDataRecord.setData(ByteBufUtil.hexDump(data));
+        tcpSession.getHistroyRecordFIFO().add(connectDataRecord);
     }
 
     @Override
@@ -48,11 +48,11 @@ public class HistroySessionListener implements SessionListener {
 
     @Override
     public void onSend(TcpSession tcpSession, byte[] data) {
-        HistoryRecord historyRecord = new HistoryRecord();
-        historyRecord.setDataType(2);
-        historyRecord.setTime(DateTimeUtils2.outNow());
-        historyRecord.setData(ByteBufUtil.hexDump(data));
-        tcpSession.getHistroyRecordFIFO().add(historyRecord);
+        ConnectDataRecord connectDataRecord = new ConnectDataRecord();
+        connectDataRecord.setDataType(2);
+        connectDataRecord.setTime(DateTimeUtils2.outNow());
+        connectDataRecord.setData(ByteBufUtil.hexDump(data));
+        tcpSession.getHistroyRecordFIFO().add(connectDataRecord);
     }
 
     @Override
