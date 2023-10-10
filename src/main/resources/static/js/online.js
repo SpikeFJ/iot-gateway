@@ -186,8 +186,7 @@ export default {
 
 <input type="checkbox" id="my_modal_7" class="modal-toggle" />
 <div class="modal ">
-  <div class="modal-box w-11/12 max-w-5xl">
-  <h1 class="sm:text-3xl text-2xl font-medium text-center title-font text-gray-900 mb-4">会话详情</h1>
+  <div class="modal-box w-11/12 max-w-5xl overflow-hidden px-3">
     <Detail ref='child' />
   </div>
   <label class="modal-backdrop" for="my_modal_7">Close</label>

@@ -186,7 +186,7 @@ public class TcpSession {
         Map<String, Object> basic = new HashMap<>();
         basic.put("sessionStatus", sessionStatus.getName());
         basic.put("remoteAddress", remoteAddress);
-        basic.put("createTime", DateTimeUtils2.outString(lastReadTime, "yyyy-MM-dd HH:mm:ss"));
+        basic.put("createTime", DateTimeUtils2.outString(createTime, "yyyy-MM-dd HH:mm:ss"));
         basic.put("channelId", channelId);
 
         basic.put("deviceId", deviceId);
