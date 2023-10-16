@@ -25,6 +25,10 @@ public class FIFO<T> {
         offset++;
     }
 
+    public T peek(){
+        return data.peek();
+    }
+
     public void remove() {
         data.removeFirst();
         if (offset > 0) {

@@ -21,6 +21,10 @@ public class DateTimeUtils2 {
         final Instant instant = date.toInstant();
         return instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
+    public static LocalDateTime toLocalDateTime(long currentTimeMillis) {
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(currentTimeMillis), ZoneId.systemDefault());
+    }
+
 
     public static String outNow() {
         return outString(LocalDateTime.now(), "yyyy-MM-dd HH:mm:ss");

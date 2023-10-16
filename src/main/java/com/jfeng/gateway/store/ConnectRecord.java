@@ -1,16 +1,16 @@
-package com.jfeng.gateway.session;
+package com.jfeng.gateway.store;
 
 import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 连接发送记录
+ * 连接记录
  */
 @Setter
 @Getter
-public class ConnectDataRecord {
+public class ConnectRecord {
     /**
-     * 数据类型。0：建立连接 1:接收 2：发送
+     * 数据类型。0：建立连接 1:接收 2：发送 3:断开
      */
     int dataType;
     /**

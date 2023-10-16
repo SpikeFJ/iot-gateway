@@ -24,7 +24,7 @@ public enum MessageType {
      */
     EVENT_SEND(130),
     /**
-     * 设备发送了数据
+     * 断开连接
      */
     EVENT_DISCONNECT(140),
 

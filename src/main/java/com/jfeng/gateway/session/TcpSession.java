@@ -2,6 +2,8 @@ package com.jfeng.gateway.session;
 
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.server.TcpServer;
+import com.jfeng.gateway.store.ConnectLifeCycle;
+import com.jfeng.gateway.store.ConnectRecord;
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.FIFO;
@@ -51,7 +53,7 @@ public class TcpSession {
     private Map<String, Object> tag = new HashMap<>();
     private List<SessionListener> sessionListeners = new ArrayList<>();
 
-    private FIFO<ConnectDataRecord> histroyRecordFIFO;
+    private FIFO<ConnectRecord> histroyRecordFIFO;
 
     public TcpSession(Channel channel, TcpServer tcpServer) {
         this.channel = channel;
@@ -140,6 +142,21 @@ public class TcpSession {
         }
     }
 
+
+    public ConnectLifeCycle createConnectLifeCycle() {
+        ConnectLifeCycle lifeCycle = new ConnectLifeCycle();
+        lifeCycle.setChannelId(this.channelId);
+        lifeCycle.setRemoteAddress(this.remoteAddress);
+
+        lifeCycle.setCreateTime(createTime);
+        lifeCycle.setCloseTime(ZonedDateTime.now().toInstant().toEpochMilli());
+        lifeCycle.setCloseReason(this.closeReason);
+
+        lifeCycle.setDeviceId(this.deviceId);
+        lifeCycle.setBusinessId(this.bId);
+        lifeCycle.setConnectRecords(this.histroyRecordFIFO);
+        return lifeCycle;
+    }
 
     @Override
     public String toString() {
