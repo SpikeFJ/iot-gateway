@@ -5,11 +5,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 完整单次连接生命周期
+ * 会话对象，记录完整单次连接生命周期
  */
 @Setter
 @Getter
-public class ConnectLifeCycle {
+public class SessionLifeCycle {
     private String channelId;
     private String remoteAddress;
 
@@ -22,7 +22,7 @@ public class ConnectLifeCycle {
     private String businessId;
 
     /**
-     * 发送接收明细
+     * 会话记录明细
      */
-    private FIFO<ConnectRecord> connectRecords;
+    private FIFO<SessionRecord> sessionRecords;
 }

@@ -2,8 +2,8 @@ package com.jfeng.gateway.session;
 
 import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.server.TcpServer;
-import com.jfeng.gateway.store.ConnectLifeCycle;
-import com.jfeng.gateway.store.ConnectRecord;
+import com.jfeng.gateway.store.SessionLifeCycle;
+import com.jfeng.gateway.store.SessionRecord;
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.FIFO;
@@ -53,7 +53,7 @@ public class TcpSession {
     private Map<String, Object> tag = new HashMap<>();
     private List<SessionListener> sessionListeners = new ArrayList<>();
 
-    private FIFO<ConnectRecord> histroyRecordFIFO;
+    private FIFO<SessionRecord> histroyRecordFIFO;
 
     public TcpSession(Channel channel, TcpServer tcpServer) {
         this.channel = channel;
@@ -143,18 +143,20 @@ public class TcpSession {
     }
 
 
-    public ConnectLifeCycle createConnectLifeCycle() {
-        ConnectLifeCycle lifeCycle = new ConnectLifeCycle();
+    public SessionLifeCycle createConnectLifeCycle() {
+        SessionLifeCycle lifeCycle = new SessionLifeCycle();
         lifeCycle.setChannelId(this.channelId);
         lifeCycle.setRemoteAddress(this.remoteAddress);
 
         lifeCycle.setCreateTime(createTime);
         lifeCycle.setCloseTime(ZonedDateTime.now().toInstant().toEpochMilli());
-        lifeCycle.setCloseReason(this.closeReason);
+
+        SessionRecord last = this.histroyRecordFIFO.getData().getLast();
+        lifeCycle.setCloseReason((last != null && last.getDataType() == 3)?last.getData():"未知");
 
         lifeCycle.setDeviceId(this.deviceId);
         lifeCycle.setBusinessId(this.bId);
-        lifeCycle.setConnectRecords(this.histroyRecordFIFO);
+        lifeCycle.setSessionRecords(this.histroyRecordFIFO);
         return lifeCycle;
     }
 

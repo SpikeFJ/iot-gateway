@@ -4,11 +4,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 连接记录
+ * 会话记录
  */
 @Setter
 @Getter
-public class ConnectRecord {
+public class SessionRecord {
     /**
      * 数据类型。0：建立连接 1:接收 2：发送 3:断开
      */

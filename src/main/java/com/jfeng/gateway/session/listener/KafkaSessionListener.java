@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * kafka会话监听器，接收到事件后写入kafka对应的主题中
+ * kafka会话监听器。接收到事件后写入kafka对应的主题中
  */
 @Component
 @Setter

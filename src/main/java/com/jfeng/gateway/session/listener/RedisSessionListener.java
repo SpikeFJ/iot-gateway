@@ -24,7 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * Redis会话监听器，维护在线信息、单个设备通讯流量
+ * Redis会话监听器。维护在线信息、单个设备通讯流量
  */
 @Component
 @Setter
