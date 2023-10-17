@@ -4,10 +4,15 @@ import com.jfeng.gateway.comm.Constant;
 import com.jfeng.gateway.comm.ThreadFactoryImpl;
 import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.TcpSession;
+import com.jfeng.gateway.store.SessionLifeCycle;
+import com.jfeng.gateway.store.SessionRecord;
 import com.jfeng.gateway.util.DateTimeUtils2;
+import com.jfeng.gateway.util.JsonUtils;
 import com.jfeng.gateway.util.RedisUtils;
+import io.netty.buffer.ByteBufUtil;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -15,26 +20,39 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * Redis会话监听器。维护在线信息、单个设备通讯流量
+ * Redis会话监听器。
+ * <p>
+ * 维护在线信息、会话历史及明细。
  */
 @Component
 @Setter
 @Slf4j
 @ConditionalOnProperty(name = "spring.redis")
 @Primary
-public class RedisSessionListener implements SessionListener {
+public class SessionInRedisListener implements SessionListener {
     private BlockingQueue<StateChangeEvent> stateChangeEvent = new LinkedBlockingQueue<>(10000);//上下线事件
     private BlockingQueue<ConnectDetail> connectDetails = new LinkedBlockingQueue<>(10000);//连接明细
     private volatile boolean isRunning;
+
+    /**
+     * 刷新类型。0：实时刷新 1:延时刷新
+     */
+    @Value("${spring.redis.flushType:0}")
+    private int flushType;
+
+    /**
+     * 延时刷新间隔。当flushType=1时候生效
+     */
+    @Value("${spring.redis.flushDelay:30}")
+    private int flushDelay;
 
     @Resource
     private RedisUtils redisUtils;
@@ -42,17 +60,18 @@ public class RedisSessionListener implements SessionListener {
     @PostConstruct
     private void init() {
         isRunning = true;
-        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("历史连接明细")).submit(() -> {
-            while (isRunning) {
-                try {
-                    //TODO 维护历史连接明细
-                    ConnectDetail connectDetail = connectDetails.take();
-
-                } catch (Exception e) {
-                    log.warn("在线列表存储异常：", e);
-                }
-            }
-        });
+        //TODO 清空在线redis
+//        Executors.newSingleThreadExecutor(new ThreadFactoryImpl("历史连接明细")).submit(() -> {
+//            while (isRunning) {
+//                try {
+//                    //TODO 维护历史连接明细
+//                    ConnectDetail connectDetail = connectDetails.take();
+//
+//                } catch (Exception e) {
+//                    log.warn("在线列表存储异常：", e);
+//                }
+//            }
+//        });
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("当前设备在线")).submit(() -> {
             while (isRunning) {
                 try {
@@ -62,16 +81,16 @@ public class RedisSessionListener implements SessionListener {
                     String onlineKey = "iot:" + tcpSession.getLocalAddress() + ":online:" + tcpSession.getDeviceId();
                     String mappingKey = Constant.ONLINE_MAPPING + tcpSession.getDeviceId();
 
-                    Map<String, String> oldOnlineInfo;
+//                    Map<String, String> oldOnlineInfo;
                     //1. 维护上一次因为异常未保存的历史连接信息
-                    if (redisUtils.hasKey(onlineKey) && ((oldOnlineInfo = redisUtils.entries(onlineKey)) != null)) {
-                        LocalDateTime createTime = DateTimeUtils2.parse(oldOnlineInfo.get(Constant.SESSION_CREATE_TIME), "yyyy-MM-dd HH:mm:ss");
-                        LocalDateTime endTime = event.deviceStatus == DeviceStatus.ONLINE ? DateTimeUtils2.parse(oldOnlineInfo.get(Constant.SESSION_LAST_REFRESH_TIME), "yyyy-MM-dd HH:mm:ss") : LocalDateTime.now();
-                        long totalMill = Duration.between(endTime, createTime).getSeconds();
-
-                        oldOnlineInfo.put(Constant.SESSION_TOTAL_MILL, String.valueOf(totalMill));
-                        connectDetails.offer(new ConnectDetail(oldOnlineInfo));
-                    }
+//                    if (redisUtils.hasKey(onlineKey) && ((oldOnlineInfo = redisUtils.entries(onlineKey)) != null)) {
+//                        LocalDateTime createTime = DateTimeUtils2.parse(oldOnlineInfo.get(Constant.SESSION_CREATE_TIME), "yyyy-MM-dd HH:mm:ss");
+//                        LocalDateTime endTime = event.deviceStatus == DeviceStatus.ONLINE ? DateTimeUtils2.parse(oldOnlineInfo.get(Constant.SESSION_LAST_REFRESH_TIME), "yyyy-MM-dd HH:mm:ss") : LocalDateTime.now();
+//                        long totalMill = Duration.between(endTime, createTime).getSeconds();
+//
+//                        oldOnlineInfo.put(Constant.SESSION_TOTAL_MILL, String.valueOf(totalMill));
+//                        connectDetails.offer(new ConnectDetail(oldOnlineInfo));
+//                    }
                     //2. 维护映射关系
                     if (event.deviceStatus == DeviceStatus.ONLINE) {
                         String connectKey = Constant.SYSTEM_PREFIX + tcpSession.getTcpServer().getLocalAddress() + ":connect:" + tcpSession.getRemoteAddress();
@@ -82,7 +101,11 @@ public class RedisSessionListener implements SessionListener {
                         mapping.put(Constant.SERVER_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
                         redisUtils.putAll(mappingKey, mapping);
                     } else {
-                        redisUtils.delete(mappingKey);
+                        //如果当前所在机器不是本机,表示已在其他机器上线，不需要进行删除操作
+                        Object existMachine = redisUtils.get(mappingKey, Constant.MACHINE);
+                        if (Objects.equals(tcpSession.getLocalAddress(), String.valueOf(existMachine))) {
+                            redisUtils.delete(mappingKey);
+                        }
                     }
                 } catch (Exception e) {
                     log.warn("在线列表存储异常：", e);
@@ -98,26 +121,25 @@ public class RedisSessionListener implements SessionListener {
 
     @Override
     public void onConnect(TcpSession tcpSession) {
-        String onlineKey = Constant.SYSTEM_PREFIX + tcpSession.getTcpServer().getLocalAddress() + ":connect:" + tcpSession.getRemoteAddress();
+        String onlineKey = Constant.SESSION_CURRENT + tcpSession.getDeviceId();
 
-        Map<String, String> hashValue = new HashMap<>();
-        hashValue.put(Constant.SESSION_CREATE_TIME, DateTimeUtils2.outString(tcpSession.getCreateTime()));
-        hashValue.put(Constant.SESSION_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
+        //1. 会话结构(hash)
+        redisUtils.put(onlineKey, DateTimeUtils2.outString(tcpSession.getCreateTime()), JsonUtils.serialize(tcpSession));
 
-        redisUtils.putAll(onlineKey, hashValue);
+        //2. 连接信息(list)
+        SessionRecord sessionRecord = new SessionRecord();
+        sessionRecord.setDataType(0);
+        sessionRecord.setTime(DateTimeUtils2.outNow());
+        redisUtils.leftPush(tcpSession.getDeviceId() + ":" + DateTimeUtils2.outString(tcpSession.getCreateTime()), JsonUtils.serialize(sessionRecord));
     }
 
     @Override
     public void onReceive(TcpSession tcpSession, byte[] data) {
-        String onlineKey = Constant.SYSTEM_PREFIX + tcpSession.getTcpServer().getLocalAddress() + ":online:" + tcpSession.getDeviceId();
-        Map<String, String> batch = new HashMap<>();
-        batch.put(Constant.SESSION_RECEIVE_PACKETS, String.valueOf(tcpSession.getReceivedPackets()));
-        batch.put(Constant.SESSION_RECEIVE_BYTES, String.valueOf(tcpSession.getReceivedBytes()));
-        batch.put(Constant.SESSION_LAST_RECEIVE_TIME, DateTimeUtils2.outString(tcpSession.getLastReadTime()));
-        batch.put(Constant.SESSION_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-        redisUtils.putAll(onlineKey, batch);
-
-        refreshMappingLocation(tcpSession);
+        SessionRecord sessionRecord = new SessionRecord();
+        sessionRecord.setDataType(1);
+        sessionRecord.setData(ByteBufUtil.hexDump(data));
+        sessionRecord.setTime(DateTimeUtils2.outNow());
+        redisUtils.leftPush(tcpSession.getDeviceId() + ":" + DateTimeUtils2.outString(tcpSession.getCreateTime()), JsonUtils.serialize(sessionRecord));
     }
 
     @Override
@@ -127,20 +149,24 @@ public class RedisSessionListener implements SessionListener {
 
     @Override
     public void onSend(TcpSession tcpSession, byte[] data) {
-        String onlineKey = Constant.SYSTEM_PREFIX + tcpSession.getTcpServer().getLocalAddress() + ":online:" + tcpSession.getDeviceId();
-        Map<String, String> batch = new HashMap<>();
-        batch.put(Constant.SESSION_SEND_PACKETS, String.valueOf(tcpSession.getSendPackets()));
-        batch.put(Constant.SESSION_SEND_BYTES, String.valueOf(tcpSession.getSendBytes()));
-        batch.put(Constant.SESSION_LAST_SEND_TIME, DateTimeUtils2.outString(tcpSession.getLastWriteTime()));
-        batch.put(Constant.SESSION_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
-        redisUtils.putAll(onlineKey, batch);
-
-        refreshMappingLocation(tcpSession);
+        SessionRecord sessionRecord = new SessionRecord();
+        sessionRecord.setDataType(2);
+        sessionRecord.setData(ByteBufUtil.hexDump(data));
+        sessionRecord.setTime(DateTimeUtils2.outNow());
+        redisUtils.leftPush(tcpSession.getDeviceId() + ":" + DateTimeUtils2.outString(tcpSession.getCreateTime()), JsonUtils.serialize(sessionRecord));
     }
 
     @Override
     public void onDisConnect(TcpSession tcpSession, String reason) {
-
+        //1.存储连接信息
+        SessionRecord sessionRecord = new SessionRecord();
+        sessionRecord.setDataType(3);
+        sessionRecord.setData(reason);
+        sessionRecord.setTime(DateTimeUtils2.outNow());
+        redisUtils.leftPush(tcpSession.getDeviceId() + ":" + DateTimeUtils2.outString(tcpSession.getCreateTime()), JsonUtils.serialize(sessionRecord));
+        //2.存储会话信息
+        SessionLifeCycle connectLifeCycle = tcpSession.createConnectLifeCycle(false);
+        redisUtils.put(Constant.SESSION_CURRENT + tcpSession.getDeviceId(), DateTimeUtils2.outString(tcpSession.getCreateTime()), JsonUtils.serialize(connectLifeCycle));
     }
 
     @Override

@@ -1,7 +1,6 @@
-package com.jfeng.gateway.up.dispatch;
+package com.jfeng.gateway.server;
 
 import com.jfeng.gateway.comm.Constant;
-import com.jfeng.gateway.server.TcpServer;
 import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.RedisUtils;
 import lombok.Getter;
@@ -19,14 +18,15 @@ import java.util.Map;
 @Setter
 @Slf4j
 @Component
-@ConditionalOnProperty(name = "spring.redis")
+@ConditionalOnProperty(name = "spring.redis.enable",havingValue = "true")
 @Primary
-public class RedisServerInfoDispatcher implements ServerInfoDispatcher {
+public class PeriodServerWorkerInRedis implements PeriodServerWorker {
     @Resource
     private RedisUtils redisUtils;
 
     @Override
-    public void dispatch(TcpServer tcpserver) {
+    public void run(TcpServer tcpserver) {
+        //1. 服务端自身信息
         Map<String, String> serverInfos = new HashMap<>();
         serverInfos.put(Constant.ONLINE, String.valueOf(tcpserver.getOnLines().size()));
         serverInfos.put(Constant.CONNECTED, String.valueOf(tcpserver.getConnected().size()));
@@ -43,5 +43,15 @@ public class RedisServerInfoDispatcher implements ServerInfoDispatcher {
         serverInfos.put(Constant.SERVER_LAST_REFRESH_TIME, DateTimeUtils2.outNow());
 
         redisUtils.putAll(Constant.SYSTEM_PREFIX + tcpserver.getLocalAddress() + ":summary", serverInfos);
+
+        //TODO 2. 当前哪些设备在线，用于时间段查询
+        Map<String, String> onlineInfo = new HashMap<>();
+        String timeNow = DateTimeUtils2.outNow();
+
+        for (String deviceId : tcpserver.getOnLines().keySet()) {
+            onlineInfo.put(deviceId, deviceId);
+        }
+        redisUtils.putAll(Constant.SYSTEM_PREFIX + tcpserver.getLocalAddress() + ":online:" + timeNow, onlineInfo);
+
     }
 }

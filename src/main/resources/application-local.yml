@@ -11,12 +11,11 @@ spring:
 #      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 #    consumer:
 #      group-id: iot-gateway-1
-#  redis:
-#    enable: true
-#    host: 127.0.0.1
-#    port: 6379
-#    timeout: 30000
-
+  redis:
+    enable: true
+    host: 127.0.0.1
+    port: 6379
+    timeout: 30000
 # 网关配置
 gateway:
   enable: true
@@ -25,7 +24,7 @@ gateway:
   protocol: none4
 
   up:
-    event-dispatch:
+    raw-data-dispatch: # 原始数据分发，可以有多种分发策略同时存在
       - type: kafka
         topic: {
           connect: "connect", #连接
@@ -39,7 +38,7 @@ gateway:
         topic: {
           default: "root" # default为默认分发路径
         }
-    data-dispatch:
+    prepared-data-dispatch: # 预处理后数据分发，接入层不解析具体数据，所以分发的是包含协议和原始数据的组合体
       type: kafka
       topic: {
         default: "root"
@@ -47,7 +46,7 @@ gateway:
   down:
     type: kafka
     topic: send_down
-  store:
+  store: # 会话存储策略
     type: memory
     maxRecordsForSingleSession: 2 #单次会话最大存储记录数，采用FIFO策略,超过则移除之前的连接信息
     maxHistorySessions: 2 #最大历史会话数，记录完整的连接生命周期内信息，采用FIFO策略,超过则移除之前的连接信息

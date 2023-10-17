@@ -16,13 +16,15 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 /**
- * 会话记录存储
+ * 会话内存监听器
+ * <p>
+ * 维护会话历史及明细
  */
 @Component
 @Setter
 @Slf4j
-@ConditionalOnProperty(name = "gateway.store.type",havingValue = "memory")
-public class SessionRecordsListener implements SessionListener {
+@ConditionalOnProperty(name = "gateway.store.type", havingValue = "memory")
+public class SessionInMemoryListener implements SessionListener {
 
     @Value("${gateway.store.maxRecordsForSingleSession:1000}")
     private int maxHistory;

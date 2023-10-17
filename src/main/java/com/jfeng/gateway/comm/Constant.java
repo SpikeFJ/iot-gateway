@@ -5,9 +5,13 @@ public class Constant {
     public static final String SYSTEM_PREFIX = "iot:";
     public static final String MODULE_MACHINE = SYSTEM_PREFIX + "machine:";
     public static final String ONLINE_MAPPING = SYSTEM_PREFIX + "online:";
+    public static final String SESSION_CURRENT = SYSTEM_PREFIX + "current:";
+    public static final String SESSION_HISTORY = SYSTEM_PREFIX + "history:";
+
     //<-----------------单个会话信息----------------------->
-    public static final String SESSION_REMOTE_ADDRESS = "remote_address";
-    public static final String SESSION_DEVICE_ID = "device_id";
+    public static final String SESSION_REMOTE_ADDRESS = "ra";
+    public static final String SESSION_LOCAL_ADDRESS = "la";
+    public static final String SESSION_DEVICE_ID = "did";
     public static final String SESSION_BID = "bid";
     public static final String SESSION_CREATE_TIME = "create_time";
     public static final String SESSION_RECEIVE_PACKETS = "receive_packets";

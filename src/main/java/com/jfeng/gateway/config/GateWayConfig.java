@@ -25,8 +25,8 @@ public class GateWayConfig {
 
     @Data
     class Up {
-        List<DispatchSetting> eventDispatch;
-        Setting dataDispatch;
+        List<DispatchSetting> rawDataDispatch;
+        Setting preparedDataDispatch;
     }
 
     @Data

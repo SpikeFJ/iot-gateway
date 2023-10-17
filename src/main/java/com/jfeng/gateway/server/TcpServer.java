@@ -15,7 +15,6 @@ import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.SessionStatus;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.up.dispatch.DataDispatcher;
-import com.jfeng.gateway.up.dispatch.ServerInfoDispatcher;
 import com.jfeng.gateway.util.DateTimeUtils;
 import com.jfeng.gateway.util.Utils;
 import io.netty.bootstrap.ServerBootstrap;
@@ -56,7 +55,7 @@ public class TcpServer extends ProxySessionListener implements Server {
     DataDispatcher dataDispatcher;
 
     @Autowired(required = false)
-    ServerInfoDispatcher serverInfoDispatcher;
+    PeriodServerWorker periodServerWorker;
 
     @Autowired(required = false)
     DownInfoSaveStrategy downInfoSave;
@@ -68,8 +67,8 @@ public class TcpServer extends ProxySessionListener implements Server {
     private volatile boolean isRunning = true;
     private int loginTimeout;//登陆超时
     private int heartTimeout;//心跳超时
-    private int timeoutCheckInterval = 1000;//检测周期
-    private int checkPeriod = 1000;//检测周期
+    private int timeoutCheckInterval = 1_000;//检测周期
+    private int periodDelay = 30_000;//周期性任务延迟间隔
 
     private boolean allowMultiSocketPerDevice = false;//是否需要单设备多连接，如双卡设备
     private Map<String, TcpSession> connected = new ConcurrentHashMap<>();//已连接集合
@@ -162,23 +161,23 @@ public class TcpServer extends ProxySessionListener implements Server {
                     log.warn("下发发送", e);
                 } finally {
                     try {
-                        Thread.sleep(checkPeriod);
+                        Thread.sleep(periodDelay);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
             }
         });
-        if (serverInfoDispatcher != null) {
+        if (periodServerWorker != null) {
             Executors.newSingleThreadExecutor(new ThreadFactoryImpl("机器流量统计")).submit(() -> {
                 while (isRunning && !Thread.currentThread().isInterrupted()) {
                     try {
-                        serverInfoDispatcher.dispatch(this);
+                        periodServerWorker.run(this);
                     } catch (Exception e) {
                         log.warn("机器流量统计", e);
                     } finally {
                         try {
-                            Thread.sleep(getCheckPeriod());
+                            Thread.sleep(getPeriodDelay());
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }

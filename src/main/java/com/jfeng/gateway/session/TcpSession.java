@@ -144,6 +144,10 @@ public class TcpSession {
 
 
     public SessionLifeCycle createConnectLifeCycle() {
+        return createConnectLifeCycle(true);
+    }
+
+    public SessionLifeCycle createConnectLifeCycle(boolean withRecords) {
         SessionLifeCycle lifeCycle = new SessionLifeCycle();
         lifeCycle.setChannelId(this.channelId);
         lifeCycle.setRemoteAddress(this.remoteAddress);
@@ -152,11 +156,13 @@ public class TcpSession {
         lifeCycle.setCloseTime(ZonedDateTime.now().toInstant().toEpochMilli());
 
         SessionRecord last = this.histroyRecordFIFO.getData().getLast();
-        lifeCycle.setCloseReason((last != null && last.getDataType() == 3)?last.getData():"未知");
+        lifeCycle.setCloseReason((last != null && last.getDataType() == 3) ? last.getData() : "未知");
 
         lifeCycle.setDeviceId(this.deviceId);
         lifeCycle.setBusinessId(this.bId);
-        lifeCycle.setSessionRecords(this.histroyRecordFIFO);
+        if (withRecords) {
+            lifeCycle.setSessionRecords(this.histroyRecordFIFO);
+        }
         return lifeCycle;
     }
 
