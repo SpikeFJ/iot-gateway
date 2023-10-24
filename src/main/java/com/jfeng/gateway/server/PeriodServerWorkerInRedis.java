@@ -6,11 +6,11 @@ import com.jfeng.gateway.util.RedisUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,7 +21,7 @@ import java.util.Map;
 @ConditionalOnProperty(name = "spring.redis.enable",havingValue = "true")
 @Primary
 public class PeriodServerWorkerInRedis implements PeriodServerWorker {
-    @Resource
+    @Autowired
     private RedisUtils redisUtils;
 
     @Override

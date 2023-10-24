@@ -10,16 +10,16 @@ import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.JsonUtils;
 import com.jfeng.gateway.util.RedisUtils;
 import io.netty.buffer.ByteBufUtil;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -54,7 +54,7 @@ public class SessionInRedisListener implements SessionListener {
     @Value("${spring.redis.flushDelay:30}")
     private int flushDelay;
 
-    @Resource
+    @Autowired
     private RedisUtils redisUtils;
 
     @PostConstruct

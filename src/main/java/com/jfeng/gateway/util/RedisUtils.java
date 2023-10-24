@@ -2,7 +2,6 @@ package com.jfeng.gateway.util;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.DataType;
-import org.springframework.data.redis.connection.RedisZSetCommands;
 import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
 
@@ -456,9 +455,9 @@ public class RedisUtils {
         return redisTemplate.opsForZSet().count(key, min, max);
     }
 
-    public Long lexCount(String key, RedisZSetCommands.Range range) {
-        return redisTemplate.opsForZSet().lexCount(key, range);
-    }
+//    public Long lexCount(String key, RedisZSetCommands.Range range) {
+//        return redisTemplate.opsForZSet().lexCount(key, range);
+//    }
 
     public Long zSize(String key) {
         return redisTemplate.opsForZSet().size(key);
@@ -487,50 +486,50 @@ public class RedisUtils {
     public Long unionAndStore(String key, Collection<String> otherKeys, String destKey) {
         return redisTemplate.opsForZSet().unionAndStore(key, otherKeys, destKey);
     }
-
-    public Long unionAndStore(String key, Collection<String> otherKeys, String destKey, RedisZSetCommands.Aggregate aggregate, RedisZSetCommands.Weights weights) {
-        return redisTemplate.opsForZSet().unionAndStore(key, otherKeys, destKey, aggregate, weights);
-    }
-
-    public Long intersectAndStore(String key, String otherKey, String destKey) {
-        return redisTemplate.opsForZSet().intersectAndStore(key, otherKey, destKey);
-    }
-
-    public Long intersectAndStore(String key, Collection<String> otherKeys, String destKey) {
-        return redisTemplate.opsForZSet().intersectAndStore(key, otherKeys, destKey);
-    }
-
-    public Long intersectAndStore(String key, Collection<String> otherKeys, String destKey, RedisZSetCommands.Aggregate aggregate, RedisZSetCommands.Weights weights) {
-        return redisTemplate.opsForZSet().intersectAndStore(key, otherKeys, destKey, aggregate, weights);
-    }
-
-    public Cursor<ZSetOperations.TypedTuple<String>> zScan(String key, ScanOptions options) {
-        return redisTemplate.opsForZSet().scan(key, options);
-    }
-
-    public Set<String> rangeByLex(String key, RedisZSetCommands.Range range, RedisZSetCommands.Limit limit) {
-        return redisTemplate.opsForZSet().rangeByLex(key, range, limit);
-    }
-
-    public Set<String> reverseRangeByLex(String key, RedisZSetCommands.Range range, RedisZSetCommands.Limit limit) {
-        return redisTemplate.opsForZSet().reverseRangeByLex(key, range, limit);
-    }
-
-    public Long unionAndStore(String key, Collection<String> otherKeys, String destKey, RedisZSetCommands.Aggregate aggregate) {
-        return redisTemplate.opsForZSet().unionAndStore(key, otherKeys, destKey, aggregate);
-    }
-
-    public Long intersectAndStore(String key, Collection<String> otherKeys, String destKey, RedisZSetCommands.Aggregate aggregate) {
-        return redisTemplate.opsForZSet().intersectAndStore(key, otherKeys, destKey, aggregate);
-    }
-
-    public Set<String> rangeByLex(String key, RedisZSetCommands.Range range) {
-        return redisTemplate.opsForZSet().rangeByLex(key, range);
-    }
-
-    public Set<String> reverseRangeByLex(String key, RedisZSetCommands.Range range) {
-        return redisTemplate.opsForZSet().reverseRangeByLex(key, range);
-    }
+//
+//    public Long unionAndStore(String key, Collection<String> otherKeys, String destKey, RedisZSetCommands.Aggregate aggregate, RedisZSetCommands.Weights weights) {
+//        return redisTemplate.opsForZSet().unionAndStore(key, otherKeys, destKey, aggregate, weights);
+//    }
+//
+//    public Long intersectAndStore(String key, String otherKey, String destKey) {
+//        return redisTemplate.opsForZSet().intersectAndStore(key, otherKey, destKey);
+//    }
+//
+//    public Long intersectAndStore(String key, Collection<String> otherKeys, String destKey) {
+//        return redisTemplate.opsForZSet().intersectAndStore(key, otherKeys, destKey);
+//    }
+//
+//    public Long intersectAndStore(String key, Collection<String> otherKeys, String destKey, RedisZSetCommands.Aggregate aggregate, RedisZSetCommands.Weights weights) {
+//        return redisTemplate.opsForZSet().intersectAndStore(key, otherKeys, destKey, aggregate, weights);
+//    }
+//
+//    public Cursor<ZSetOperations.TypedTuple<String>> zScan(String key, ScanOptions options) {
+//        return redisTemplate.opsForZSet().scan(key, options);
+//    }
+//
+//    public Set<String> rangeByLex(String key, RedisZSetCommands.Range range, RedisZSetCommands.Limit limit) {
+//        return redisTemplate.opsForZSet().rangeByLex(key, range, limit);
+//    }
+//
+//    public Set<String> reverseRangeByLex(String key, RedisZSetCommands.Range range, RedisZSetCommands.Limit limit) {
+//        return redisTemplate.opsForZSet().reverseRangeByLex(key, range, limit);
+//    }
+//
+//    public Long unionAndStore(String key, Collection<String> otherKeys, String destKey, RedisZSetCommands.Aggregate aggregate) {
+//        return redisTemplate.opsForZSet().unionAndStore(key, otherKeys, destKey, aggregate);
+//    }
+//
+//    public Long intersectAndStore(String key, Collection<String> otherKeys, String destKey, RedisZSetCommands.Aggregate aggregate) {
+//        return redisTemplate.opsForZSet().intersectAndStore(key, otherKeys, destKey, aggregate);
+//    }
+//
+//    public Set<String> rangeByLex(String key, RedisZSetCommands.Range range) {
+//        return redisTemplate.opsForZSet().rangeByLex(key, range);
+//    }
+//
+//    public Set<String> reverseRangeByLex(String key, RedisZSetCommands.Range range) {
+//        return redisTemplate.opsForZSet().reverseRangeByLex(key, range);
+//    }
 
     /**
      * ---------------------------------hash---------------------------------

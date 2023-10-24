@@ -4,16 +4,15 @@ package com.jfeng.gateway.config;
 import com.jfeng.gateway.server.TcpServer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
-
-import javax.annotation.Resource;
 
 /**
  * 自定义消费监听器
  */
 @Slf4j
 public class CustomKafkaListener {
-    @Resource
+    @Autowired
     TcpServer tcpServer;
 
     /**

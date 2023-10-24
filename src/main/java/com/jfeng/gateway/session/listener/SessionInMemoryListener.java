@@ -9,11 +9,10 @@ import com.jfeng.gateway.util.FIFO;
 import io.netty.buffer.ByteBufUtil;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.Resource;
 
 /**
  * 会话内存监听器
@@ -29,7 +28,7 @@ public class SessionInMemoryListener implements SessionListener {
     @Value("${gateway.store.maxRecordsForSingleSession:1000}")
     private int maxHistory;
 
-    @Resource
+    @Autowired
     private SessionHistory history;
 
     @Override

@@ -8,10 +8,10 @@ import com.jfeng.gateway.util.RedisUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -27,7 +27,7 @@ public class RedisDownInfoSaveStrategy implements DownInfoSaveStrategy {
     private static final String SENT = "IOT:SENT";
     private static final String WAIT_TO_SEND_KAFKA = "IOT:WAIT_TO_SEND_KAFKA";
 
-    @Resource
+    @Autowired
     RedisUtils redisUtils;
     private Lock lock = new ReentrantLock();
 

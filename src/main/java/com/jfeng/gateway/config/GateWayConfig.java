@@ -20,29 +20,29 @@ public class GateWayConfig {
     private String protocol;
 
     private Up up;
-    private Setting down;
+    private Down down;
+}
 
 
-    @Data
-    class Up {
-        List<DispatchSetting> rawDataDispatch;
-        Setting preparedDataDispatch;
-    }
+@Data
+class Up {
+    List<DispatchSetting> rawDataDispatch;
+    Setting preparedDataDispatch;
+}
 
-    @Data
-    class Down {
-        private String type;
-        private String topic;
-    }
+@Data
+class Down {
+    private String type;
+    private String topic;
+}
 
-    @Data
-    class DispatchSetting {
-        private String type;
-        private Map<String, String> topic;
-    }
+@Data
+class DispatchSetting {
+    private String type;
+    private Map<String, String> topic;
+}
 
-    class Setting {
-        private String type;
-        private String topic;
-    }
+class Setting {
+    private String type;
+    private String topic;
 }

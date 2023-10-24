@@ -2,13 +2,12 @@ package com.jfeng.gateway.up.dispatch;
 
 import com.jfeng.gateway.message.DispatchMessage;
 import com.jfeng.gateway.util.JsonUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.Resource;
 
 /**
  * kafka数据分发器
@@ -17,7 +16,7 @@ import javax.annotation.Resource;
 @ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
 @Primary
 public class KafkaDataDispatcher implements DataDispatcher {
-    @Resource
+    @Autowired
     private KafkaTemplate kafkaTemplate;
 
     @Value("${dispatch.topic:dispatchDst}")

@@ -5,10 +5,10 @@ import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.DateTimeUtils2;
 import com.jfeng.gateway.util.StringUtils;
 import com.jfeng.gateway.util.Utils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @CrossOrigin("*")
 public class TcpController {
 
-    @Resource
+    @Autowired
     TcpServer tcpServer;
 
     /**

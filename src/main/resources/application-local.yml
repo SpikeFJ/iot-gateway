@@ -11,11 +11,11 @@ spring:
 #      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 #    consumer:
 #      group-id: iot-gateway-1
-  redis:
-    enable: true
-    host: 127.0.0.1
-    port: 6379
-    timeout: 30000
+#  redis:
+#    enable: true
+#    host: 127.0.0.1
+#    port: 6379
+#    timeout: 30000
 # 网关配置
 gateway:
   enable: true

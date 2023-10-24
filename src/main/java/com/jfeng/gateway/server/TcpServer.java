@@ -30,7 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -51,7 +50,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Setter
 @Component
 public class TcpServer extends ProxySessionListener implements Server {
-    @Resource
+    @Autowired
     DataDispatcher dataDispatcher;
 
     @Autowired(required = false)
@@ -98,6 +97,7 @@ public class TcpServer extends ProxySessionListener implements Server {
     public void init(Map<String, String> parameters) {
         localAddress = Utils.getIpAddress();
         createTime = LocalDateTime.now();
+
         Executors.newSingleThreadExecutor(new ThreadFactoryImpl("超时检测")).submit(() -> {
             while (isRunning && !Thread.currentThread().isInterrupted()) {
                 try {

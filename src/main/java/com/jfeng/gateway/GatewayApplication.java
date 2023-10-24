@@ -9,19 +9,18 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 @SpringBootApplication
 @Slf4j
 public class GatewayApplication implements CommandLineRunner {
-    @Resource
+    @Autowired
     public GateWayConfig config;
 
     @Autowired(required = false)
     public TcpServer tcpServer;
 
-    @Resource
+    @Autowired
     private List<SessionListener> sessionListener;
 
     public static void main(String[] args) {

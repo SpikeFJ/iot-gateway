@@ -5,15 +5,16 @@ import com.jfeng.gateway.session.SessionListener;
 import com.jfeng.gateway.session.TcpSession;
 import com.jfeng.gateway.util.JsonUtils;
 import io.netty.buffer.ByteBufUtil;
+import jakarta.annotation.PostConstruct;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,7 +47,7 @@ public class KafkaSessionListener implements SessionListener {
     }
 
 
-    @Resource
+    @Autowired
     private KafkaTemplate kafkaTemplate;
 
     @Override
