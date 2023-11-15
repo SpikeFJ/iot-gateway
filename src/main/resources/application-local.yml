@@ -3,7 +3,7 @@ server:
   compression:
     enabled: true
     min-response-size: 512
-spring:
+#spring:
 #  kafka:
 #    bootstrap-servers: 127.0.0.1:9092
 #    producer:
@@ -48,8 +48,8 @@ gateway:
     topic: send_down
   store: # 会话存储策略
     type: memory
-    maxRecordsForSingleSession: 2 #单次会话最大存储记录数，采用FIFO策略,超过则移除之前的连接信息
-    maxHistorySessions: 2 #最大历史会话数，记录完整的连接生命周期内信息，采用FIFO策略,超过则移除之前的连接信息
+    maxRecordsForSingleSession: 15 #单次会话最大存储记录数，采用FIFO策略,超过则移除之前的连接信息
+    maxHistorySessions: 3 #最大历史会话数，记录完整的连接生命周期内信息，采用FIFO策略,超过则移除之前的连接信息
     maxHistoryTime: 600 #最长历史会话保留时长，单位秒，超时则自动移除
 
 logging:
